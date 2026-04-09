@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DartItem, FeedPayload, SecItem } from "@/lib/types";
 import styles from "./feed-page.module.css";
 
@@ -138,6 +138,7 @@ export function FeedPage(props: FeedPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [dartData, setDartData] = useState<FeedPayload<DartItem> | null>(null);
   const [secData, setSecData] = useState<FeedPayload<SecItem> | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,14 +174,42 @@ export function FeedPage(props: FeedPageProps) {
       }
     }
 
+    function stopPolling() {
+      if (intervalRef.current !== null) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    function startPolling() {
+      stopPolling();
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      intervalRef.current = window.setInterval(() => {
+        void loadFeed();
+      }, REFRESH_MS);
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void loadFeed();
+        startPolling();
+        return;
+      }
+
+      stopPolling();
+    }
+
     void loadFeed();
-    const interval = window.setInterval(() => {
-      void loadFeed();
-    }, REFRESH_MS);
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopPolling();
     };
   }, [props.type]);
 
