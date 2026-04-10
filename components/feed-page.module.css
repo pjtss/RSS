@@ -91,6 +91,49 @@
   border-radius: 24px;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.toolbarLabel {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  background: #f7fbff;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.segment,
+.segmentActive {
+  border: 0;
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 0 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segment {
+  background: transparent;
+  color: var(--muted);
+}
+
+.segmentActive {
+  background: var(--accent);
+  color: #ffffff;
+}
+
 .tableWrap {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -176,6 +219,35 @@
   border: 1px solid #f5caca;
 }
 
+.groupList {
+  display: grid;
+  gap: 18px;
+}
+
+.groupSection {
+  display: grid;
+  gap: 12px;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.groupHeader h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.groupHeader span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 @media (max-width: 960px) {
   .hero {
     grid-template-columns: 1fr;
@@ -188,5 +260,10 @@
 
   .panel {
     padding: 14px;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { DartItem, FeedPayload, SecItem } from "@/lib/types";
+import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
 
 type FeedKind = "dart" | "sec";
+type ViewMode = "latest" | "grouped";
 
 type FeedPageProps =
   | {
@@ -63,6 +64,39 @@ function Navigation({ current }: { current: FeedKind }) {
   );
 }
 
+function sortByPublishedAtDesc<T extends { publishedAt: string }>(items: T[]): T[] {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left.publishedAt).getTime();
+    const rightTime = new Date(right.publishedAt).getTime();
+    return rightTime - leftTime;
+  });
+}
+
+function DartSections({ items }: { items: DartItem[] }) {
+  const orders: DartJudgment[] = ["최강호재", "호재가능", "악재", "중립"];
+
+  return (
+    <div className={styles.groupList}>
+      {orders.map((judgment) => {
+        const sectionItems = items.filter((item) => item.judgment === judgment);
+        if (sectionItems.length === 0) {
+          return null;
+        }
+
+        return (
+          <section key={judgment} className={styles.groupSection}>
+            <div className={styles.groupHeader}>
+              <h2>{judgment}</h2>
+              <span>{sectionItems.length}건</span>
+            </div>
+            <DartTable items={sectionItems} />
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
 function DartTable({ items }: { items: DartItem[] }) {
   return (
     <div className={styles.tableWrap}>
@@ -94,6 +128,31 @@ function DartTable({ items }: { items: DartItem[] }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function SecSections({ items }: { items: SecItem[] }) {
+  const orders: SecSentiment[] = ["호재가능", "악재가능", "중요공시", "일반공시"];
+
+  return (
+    <div className={styles.groupList}>
+      {orders.map((sentiment) => {
+        const sectionItems = items.filter((item) => item.sentiment === sentiment);
+        if (sectionItems.length === 0) {
+          return null;
+        }
+
+        return (
+          <section key={sentiment} className={styles.groupSection}>
+            <div className={styles.groupHeader}>
+              <h2>{sentiment}</h2>
+              <span>{sectionItems.length}건</span>
+            </div>
+            <SecTable items={sectionItems} />
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -138,6 +197,7 @@ export function FeedPage(props: FeedPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [dartData, setDartData] = useState<FeedPayload<DartItem> | null>(null);
   const [secData, setSecData] = useState<FeedPayload<SecItem> | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -215,6 +275,8 @@ export function FeedPage(props: FeedPageProps) {
 
   const count = props.type === "dart" ? (dartData?.items.length ?? 0) : (secData?.items.length ?? 0);
   const fetchedAt = props.type === "dart" ? dartData?.fetchedAt : secData?.fetchedAt;
+  const dartItems = sortByPublishedAtDesc(dartData?.items ?? []);
+  const secItems = sortByPublishedAtDesc(secData?.items ?? []);
 
   return (
     <main className={styles.page}>
@@ -237,14 +299,33 @@ export function FeedPage(props: FeedPageProps) {
       {error ? <div className={styles.error}>{error}</div> : null}
 
       <section className={styles.panel}>
+        <div className={styles.toolbar}>
+          <div className={styles.toolbarLabel}>보기 방식</div>
+          <div className={styles.segmented}>
+            <button
+              type="button"
+              className={viewMode === "latest" ? styles.segmentActive : styles.segment}
+              onClick={() => setViewMode("latest")}
+            >
+              최신순
+            </button>
+            <button
+              type="button"
+              className={viewMode === "grouped" ? styles.segmentActive : styles.segment}
+              onClick={() => setViewMode("grouped")}
+            >
+              분류별
+            </button>
+          </div>
+        </div>
         {props.type === "dart" ? (
-          dartData && dartData.items.length > 0 ? (
-            <DartTable items={dartData.items} />
+          dartItems.length > 0 ? (
+            viewMode === "latest" ? <DartTable items={dartItems} /> : <DartSections items={dartItems} />
           ) : (
             <p className={styles.empty}>현재 조건에 맞는 DART 공시가 없습니다.</p>
           )
-        ) : secData && secData.items.length > 0 ? (
-          <SecTable items={secData.items} />
+        ) : secItems.length > 0 ? (
+          viewMode === "latest" ? <SecTable items={secItems} /> : <SecSections items={secItems} />
         ) : (
           <p className={styles.empty}>현재 조건에 맞는 SEC 공시가 없습니다.</p>
         )}
