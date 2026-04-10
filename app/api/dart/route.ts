@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { syncDartAlerts } from "@/lib/alerts";
+import { getRecentDartBullishFeed, syncDartAlerts } from "@/lib/alerts";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const payload = await syncDartAlerts();
+    await syncDartAlerts();
+    const payload = await getRecentDartBullishFeed(1);
     return NextResponse.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : "DART 데이터를 불러오지 못했습니다.";

@@ -216,3 +216,75 @@ export async function syncSecAlerts(): Promise<FeedPayload<SecItem>> {
     newAlerts,
   };
 }
+
+export async function getRecentDartBullishFeed(hours = 1): Promise<FeedPayload<DartItem>> {
+  await ensureSchema();
+  const client = await getPool().connect();
+
+  try {
+    const { rows } = await client.query(
+      `
+        SELECT company, title, judgment, keywords, published_at, link
+        FROM filings
+        WHERE source = 'DART'
+          AND judgment = ANY($1::text[])
+          AND published_at >= NOW() - ($2::text || ' hours')::interval
+        ORDER BY published_at DESC
+      `,
+      [["최강호재", "호재가능"], String(hours)],
+    );
+
+    return {
+      source: "DART",
+      fetchedAt: new Date().toISOString(),
+      items: rows.map((row) => ({
+        source: "DART",
+        company: row.company,
+        title: row.title,
+        judgment: row.judgment,
+        keywords: row.keywords ?? [],
+        publishedAt: new Date(row.published_at).toISOString(),
+        link: row.link,
+      })),
+    };
+  } finally {
+    client.release();
+  }
+}
+
+export async function getRecentSecBullishFeed(hours = 1): Promise<FeedPayload<SecItem>> {
+  await ensureSchema();
+  const client = await getPool().connect();
+
+  try {
+    const { rows } = await client.query(
+      `
+        SELECT external_id, company, title, judgment, form_type, summary, published_at, link
+        FROM filings
+        WHERE source = 'SEC'
+          AND judgment = '호재가능'
+          AND published_at >= NOW() - ($1::text || ' hours')::interval
+        ORDER BY published_at DESC
+      `,
+      [String(hours)],
+    );
+
+    return {
+      source: "SEC",
+      fetchedAt: new Date().toISOString(),
+      items: rows.map((row) => ({
+        source: "SEC",
+        accession: row.external_id,
+        company: row.company,
+        formType: row.form_type ?? "UNKNOWN",
+        sentiment: row.judgment,
+        publishedAt: new Date(row.published_at).toISOString(),
+        title: row.title,
+        summary: row.summary ?? "",
+        link: row.link,
+      })),
+    };
+  } finally {
+    client.release();
+  }
+}
