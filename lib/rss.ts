@@ -223,7 +223,7 @@ export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
     .map((item) => {
       const title = normalizeText(item.title);
       const judgment = classifyDartTitle(title);
-      if (!["최강호재", "호재가능"].includes(judgment)) {
+      if (!["최강호재", "호재가능", "악재"].includes(judgment)) {
         return null;
       }
 
@@ -350,7 +350,7 @@ export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
       const formType = extractSecFormType(entry, title, summary);
       const sentiment = classifySecEntry(formType, title, summary);
 
-      if (!SEC_TARGET_FORMS.has(formType) || sentiment !== "호재가능") {
+      if (!SEC_TARGET_FORMS.has(formType) || !["호재가능", "악재가능"].includes(sentiment)) {
         return acc;
       }
 
