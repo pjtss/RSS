@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { DartItem, DartJudgment, FeedPayload, PushDebugStatus, SecItem, SecSentiment } from "@/lib/types";
+import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
+import { usePushDebug } from "./push-provider";
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
@@ -106,7 +107,7 @@ function DartTable({ items }: { items: DartItem[] }) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>판단</th>
+            <th>등급</th>
             <th>회사명</th>
             <th>공시 제목</th>
             <th>키워드</th>
@@ -166,7 +167,7 @@ function SecTable({ items }: { items: SecItem[] }) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>판단</th>
+            <th>등급</th>
             <th>폼</th>
             <th>회사명</th>
             <th>공시 제목</th>
@@ -203,15 +204,17 @@ export function FeedPage(props: FeedPageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const [page, setPage] = useState(1);
   const [pushTesting, setPushTesting] = useState(false);
-  const [pushStatus, setPushStatus] = useState<PushDebugStatus | null>(null);
   const intervalRef = useRef<number | null>(null);
+  const { status: pushStatus, enablePush, refreshStatus, enabling } = usePushDebug();
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadFeed() {
       try {
-        const response = await fetch(props.type === "dart" ? "/api/dart" : "/api/sec");
+        const response = await fetch(props.type === "dart" ? "/api/dart" : "/api/sec", {
+          cache: "no-store",
+        });
         if (!response.ok) {
           throw new Error("RSS 응답을 가져오는 데 실패했습니다.");
         }
@@ -283,58 +286,6 @@ export function FeedPage(props: FeedPageProps) {
     setPage(1);
   }, [props.type, viewMode]);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadPushStatus() {
-      try {
-        const response = await fetch("/api/push/subscribe");
-        const data = await response.json();
-
-        if (!mounted) {
-          return;
-        }
-
-        setPushStatus({
-          supported:
-            typeof window !== "undefined" &&
-            "serviceWorker" in navigator &&
-            "PushManager" in window &&
-            "Notification" in window,
-          permission:
-            typeof window !== "undefined" && "Notification" in window
-              ? Notification.permission
-              : "unsupported",
-          serviceWorkerRegistered: typeof window !== "undefined" && "serviceWorker" in navigator,
-          subscriptionExists: Boolean(window.__pushDebug?.subscriptionExists || data.latestEndpoint),
-          endpoint: window.__pushDebug?.endpoint || data.latestEndpoint || undefined,
-          lastSaved: window.__pushDebug?.lastSaved || data.latestUpdatedAt || undefined,
-          savedCount: data.savedCount ?? window.__pushDebug?.savedCount,
-          latestUserAgent: data.latestUserAgent ?? undefined,
-          error: window.__pushDebug?.error,
-        });
-      } catch (err) {
-        if (!mounted) {
-          return;
-        }
-
-        setPushStatus({
-          supported: false,
-          permission: "unsupported",
-          serviceWorkerRegistered: false,
-          subscriptionExists: false,
-          error: err instanceof Error ? err.message : "구독 상태 확인 실패",
-        });
-      }
-    }
-
-    void loadPushStatus();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
   const rawDartItems = sortByPublishedAtDesc(dartData?.items ?? []);
   const rawSecItems = sortByPublishedAtDesc(secData?.items ?? []);
   const count = props.type === "dart" ? rawDartItems.length : rawSecItems.length;
@@ -361,6 +312,16 @@ export function FeedPage(props: FeedPageProps) {
     }
   }
 
+  async function handleEnablePush() {
+    try {
+      await enablePush();
+      await refreshStatus();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알림 활성화 실패");
+    }
+  }
+
   return (
     <main className={styles.page}>
       <Navigation current={props.type} />
@@ -380,15 +341,24 @@ export function FeedPage(props: FeedPageProps) {
           <div className={styles.pushDebug}>
             <span>푸시 지원: {pushStatus?.supported ? "예" : "아니오"}</span>
             <span>권한: {pushStatus?.permission ?? "-"}</span>
-            <span>구독 존재: {pushStatus?.subscriptionExists ? "예" : "아니오"}</span>
+            <span>현재 기기 구독 존재: {pushStatus?.subscriptionExists ? "예" : "아니오"}</span>
+            <span>현재 기기 DB 저장: {pushStatus?.currentDeviceSaved ? "예" : "아니오"}</span>
             <span>저장된 구독 수: {pushStatus?.savedCount ?? 0}</span>
             <span>최근 저장 시각: {pushStatus?.lastSaved ? formatTime(pushStatus.lastSaved) : "-"}</span>
             <span>최근 User-Agent: {pushStatus?.latestUserAgent ?? "-"}</span>
             <span>Endpoint: {pushStatus?.endpoint ? "있음" : "없음"}</span>
             {pushStatus?.error ? <span>오류: {pushStatus.error}</span> : null}
           </div>
+          <button
+            type="button"
+            className={styles.enableButton}
+            onClick={handleEnablePush}
+            disabled={enabling || !pushStatus?.supported}
+          >
+            {enabling ? "알림 활성화 중.." : "알림 활성화"}
+          </button>
           <button type="button" className={styles.testButton} onClick={handleTestPush} disabled={pushTesting}>
-            {pushTesting ? "전송 중..." : "테스트 푸시 보내기"}
+            {pushTesting ? "전송 중.." : "테스트 푸시 보내기"}
           </button>
         </div>
       </section>

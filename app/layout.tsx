@@ -16,8 +16,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <PushProvider />
-        {children}
+        <PushProvider>{children}</PushProvider>
       </body>
     </html>
   );

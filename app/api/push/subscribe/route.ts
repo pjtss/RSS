@@ -15,11 +15,12 @@ export async function POST(request: Request) {
       userAgent: request.headers.get("user-agent") ?? undefined,
     });
 
-    const debug = await loadPushSubscriptionDebug();
+    const debug = await loadPushSubscriptionDebug(body.endpoint);
 
     return NextResponse.json({
       ok: true,
       savedCount: debug.count,
+      currentDeviceSaved: debug.currentDeviceSaved,
       latestUpdatedAt: debug.latest?.updatedAt ?? null,
       latestEndpoint: debug.latest?.endpoint ?? null,
     });
@@ -29,13 +30,16 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await ensureSchema();
-    const debug = await loadPushSubscriptionDebug();
+    const { searchParams } = new URL(request.url);
+    const endpoint = searchParams.get("endpoint") ?? undefined;
+    const debug = await loadPushSubscriptionDebug(endpoint);
     return NextResponse.json({
       ok: true,
       savedCount: debug.count,
+      currentDeviceSaved: debug.currentDeviceSaved,
       latestEndpoint: debug.latest?.endpoint ?? null,
       latestUpdatedAt: debug.latest?.updatedAt ?? null,
       latestUserAgent: debug.latest?.userAgent ?? null,

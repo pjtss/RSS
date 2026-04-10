@@ -52,9 +52,11 @@ export interface PushDebugStatus {
   permission: NotificationPermission | "unsupported";
   serviceWorkerRegistered: boolean;
   subscriptionExists: boolean;
+  currentDeviceSaved?: boolean;
   endpoint?: string;
   lastSaved?: string;
   savedCount?: number;
   latestUserAgent?: string;
+  actionRequired?: boolean;
   error?: string;
 }

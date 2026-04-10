@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { PushDebugStatus } from "@/lib/types";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -16,88 +17,202 @@ declare global {
   }
 }
 
-export function PushProvider() {
-  useEffect(() => {
-    async function register() {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        window.__pushDebug = {
-          supported: false,
-          permission: "unsupported",
-          serviceWorkerRegistered: false,
-          subscriptionExists: false,
-        };
-        return;
-      }
+type PushContextValue = {
+  status: PushDebugStatus | null;
+  enablePush: () => Promise<void>;
+  refreshStatus: () => Promise<void>;
+  enabling: boolean;
+};
 
-      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!publicKey) {
-        window.__pushDebug = {
-          supported: true,
-          permission: Notification.permission,
-          serviceWorkerRegistered: false,
-          subscriptionExists: false,
-          error: "NEXT_PUBLIC_VAPID_PUBLIC_KEY 누락",
-        };
-        return;
-      }
+const PushContext = createContext<PushContextValue | null>(null);
 
-      try {
-        const permission =
-          Notification.permission === "granted"
-            ? "granted"
-            : await Notification.requestPermission();
+async function readLocalStatus(): Promise<PushDebugStatus> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+    return {
+      supported: false,
+      permission: "unsupported",
+      serviceWorkerRegistered: false,
+      subscriptionExists: false,
+    };
+  }
 
-        if (permission !== "granted") {
-          window.__pushDebug = {
-            supported: true,
-            permission,
-            serviceWorkerRegistered: false,
-            subscriptionExists: false,
-          };
-          return;
-        }
+  const registration = await navigator.serviceWorker.getRegistration("/sw.js");
+  const subscription = registration ? await registration.pushManager.getSubscription() : null;
 
-        const registration = await navigator.serviceWorker.register("/sw.js");
-        let subscription = await registration.pushManager.getSubscription();
+  return {
+    supported: true,
+    permission: Notification.permission,
+    serviceWorkerRegistered: Boolean(registration),
+    subscriptionExists: Boolean(subscription),
+    endpoint: subscription?.endpoint,
+    actionRequired: Notification.permission !== "granted",
+  };
+}
 
-        if (!subscription) {
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(publicKey),
-          });
-        }
+export function PushProvider({ children }: { children?: ReactNode }) {
+  const [status, setStatus] = useState<PushDebugStatus | null>(null);
+  const [enabling, setEnabling] = useState(false);
 
-        const response = await fetch("/api/push/subscribe", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(subscription),
-        });
+  async function refreshStatus() {
+    try {
+      const localStatus = await readLocalStatus();
+      const search = localStatus.endpoint ? `?endpoint=${encodeURIComponent(localStatus.endpoint)}` : "";
+      const response = await fetch(`/api/push/subscribe${search}`, {
+        cache: "no-store",
+      });
+      const data = await response.json();
 
-        const result = await response.json();
-        window.__pushDebug = {
-          supported: true,
-          permission,
-          serviceWorkerRegistered: true,
-          subscriptionExists: true,
-          endpoint: subscription.endpoint,
-          lastSaved: result.latestUpdatedAt ?? undefined,
-          savedCount: result.savedCount ?? undefined,
-        };
-      } catch (error) {
-        window.__pushDebug = {
-          supported: true,
-          permission: Notification.permission,
-          serviceWorkerRegistered: false,
-          subscriptionExists: false,
-          error: error instanceof Error ? error.message : "구독 등록 실패",
-        };
-      }
+      const nextStatus: PushDebugStatus = {
+        ...localStatus,
+        currentDeviceSaved: data.currentDeviceSaved ?? false,
+        savedCount: data.savedCount ?? undefined,
+        lastSaved: data.latestUpdatedAt ?? undefined,
+        latestUserAgent: data.latestUserAgent ?? undefined,
+        error: undefined,
+      };
+
+      window.__pushDebug = nextStatus;
+      setStatus(nextStatus);
+    } catch (error) {
+      const fallback: PushDebugStatus = {
+        supported: false,
+        permission: "unsupported",
+        serviceWorkerRegistered: false,
+        subscriptionExists: false,
+        error: error instanceof Error ? error.message : "구독 상태 확인 실패",
+      };
+      window.__pushDebug = fallback;
+      setStatus(fallback);
+    }
+  }
+
+  async function enablePush() {
+    if (enabling) {
+      return;
     }
 
-    void register();
+    setEnabling(true);
+
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      const unsupportedStatus: PushDebugStatus = {
+        supported: false,
+        permission: "unsupported",
+        serviceWorkerRegistered: false,
+        subscriptionExists: false,
+      };
+      window.__pushDebug = unsupportedStatus;
+      setStatus(unsupportedStatus);
+      setEnabling(false);
+      return;
+    }
+
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicKey) {
+      const invalidStatus: PushDebugStatus = {
+        supported: true,
+        permission: Notification.permission,
+        serviceWorkerRegistered: false,
+        subscriptionExists: false,
+        actionRequired: false,
+        error: "NEXT_PUBLIC_VAPID_PUBLIC_KEY 누락",
+      };
+      window.__pushDebug = invalidStatus;
+      setStatus(invalidStatus);
+      setEnabling(false);
+      return;
+    }
+
+    try {
+      const permission =
+        Notification.permission === "granted"
+          ? "granted"
+          : await Notification.requestPermission();
+
+      if (permission !== "granted") {
+        const permissionStatus: PushDebugStatus = {
+          supported: true,
+          permission,
+          serviceWorkerRegistered: false,
+          subscriptionExists: false,
+          actionRequired: true,
+        };
+        window.__pushDebug = permissionStatus;
+        setStatus(permissionStatus);
+        setEnabling(false);
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.register("/sw.js");
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        });
+      }
+
+      const response = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(subscription),
+      });
+      const result = await response.json();
+
+      const nextStatus: PushDebugStatus = {
+        supported: true,
+        permission,
+        serviceWorkerRegistered: true,
+        subscriptionExists: true,
+        currentDeviceSaved: result.currentDeviceSaved ?? true,
+        endpoint: subscription.endpoint,
+        lastSaved: result.latestUpdatedAt ?? undefined,
+        savedCount: result.savedCount ?? undefined,
+        actionRequired: false,
+      };
+
+      window.__pushDebug = nextStatus;
+      setStatus(nextStatus);
+    } catch (error) {
+      const failedStatus: PushDebugStatus = {
+        supported: true,
+        permission: Notification.permission,
+        serviceWorkerRegistered: false,
+        subscriptionExists: false,
+        actionRequired: Notification.permission !== "granted",
+        error: error instanceof Error ? error.message : "구독 등록 실패",
+      };
+      window.__pushDebug = failedStatus;
+      setStatus(failedStatus);
+    } finally {
+      setEnabling(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshStatus();
   }, []);
 
-  return null;
+  const value = useMemo(
+    () => ({
+      status,
+      enablePush,
+      refreshStatus,
+      enabling,
+    }),
+    [status, enabling],
+  );
+
+  return <PushContext.Provider value={value}>{children ?? null}</PushContext.Provider>;
+}
+
+export function usePushDebug() {
+  const context = useContext(PushContext);
+  if (!context) {
+    throw new Error("PushProvider 안에서만 usePushDebug를 사용할 수 있습니다.");
+  }
+
+  return context;
 }

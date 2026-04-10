@@ -71,7 +71,7 @@ export async function loadPushSubscriptions(): Promise<PushSubscriptionRecord[]>
   }
 }
 
-export async function loadPushSubscriptionDebug() {
+export async function loadPushSubscriptionDebug(endpoint?: string) {
   const client = await getPool().connect();
 
   try {
@@ -83,8 +83,15 @@ export async function loadPushSubscriptionDebug() {
       `,
     );
 
+    let currentDeviceSaved = false;
+    if (endpoint) {
+      const result = await client.query("SELECT 1 FROM push_subscriptions WHERE endpoint = $1 LIMIT 1", [endpoint]);
+      currentDeviceSaved = (result.rowCount ?? 0) > 0;
+    }
+
     return {
       count: rows.length,
+      currentDeviceSaved,
       latest:
         rows.length > 0
           ? {
