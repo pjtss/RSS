@@ -71,6 +71,34 @@ export async function loadPushSubscriptions(): Promise<PushSubscriptionRecord[]>
   }
 }
 
+export async function loadPushSubscriptionDebug() {
+  const client = await getPool().connect();
+
+  try {
+    const { rows } = await client.query(
+      `
+        SELECT endpoint, user_agent, updated_at
+        FROM push_subscriptions
+        ORDER BY updated_at DESC
+      `,
+    );
+
+    return {
+      count: rows.length,
+      latest:
+        rows.length > 0
+          ? {
+              endpoint: rows[0].endpoint,
+              userAgent: rows[0].user_agent ?? "",
+              updatedAt: new Date(rows[0].updated_at).toISOString(),
+            }
+          : null,
+    };
+  } finally {
+    client.release();
+  }
+}
+
 export async function sendPushAlerts(alerts: AlertItem[]) {
   if (alerts.length === 0) {
     return;

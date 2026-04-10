@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
+import type { DartItem, DartJudgment, FeedPayload, PushDebugStatus, SecItem, SecSentiment } from "@/lib/types";
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
@@ -203,6 +203,7 @@ export function FeedPage(props: FeedPageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const [page, setPage] = useState(1);
   const [pushTesting, setPushTesting] = useState(false);
+  const [pushStatus, setPushStatus] = useState<PushDebugStatus | null>(null);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -282,6 +283,58 @@ export function FeedPage(props: FeedPageProps) {
     setPage(1);
   }, [props.type, viewMode]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadPushStatus() {
+      try {
+        const response = await fetch("/api/push/subscribe");
+        const data = await response.json();
+
+        if (!mounted) {
+          return;
+        }
+
+        setPushStatus({
+          supported:
+            typeof window !== "undefined" &&
+            "serviceWorker" in navigator &&
+            "PushManager" in window &&
+            "Notification" in window,
+          permission:
+            typeof window !== "undefined" && "Notification" in window
+              ? Notification.permission
+              : "unsupported",
+          serviceWorkerRegistered: typeof window !== "undefined" && "serviceWorker" in navigator,
+          subscriptionExists: Boolean(window.__pushDebug?.subscriptionExists || data.latestEndpoint),
+          endpoint: window.__pushDebug?.endpoint || data.latestEndpoint || undefined,
+          lastSaved: window.__pushDebug?.lastSaved || data.latestUpdatedAt || undefined,
+          savedCount: data.savedCount ?? window.__pushDebug?.savedCount,
+          latestUserAgent: data.latestUserAgent ?? undefined,
+          error: window.__pushDebug?.error,
+        });
+      } catch (err) {
+        if (!mounted) {
+          return;
+        }
+
+        setPushStatus({
+          supported: false,
+          permission: "unsupported",
+          serviceWorkerRegistered: false,
+          subscriptionExists: false,
+          error: err instanceof Error ? err.message : "구독 상태 확인 실패",
+        });
+      }
+    }
+
+    void loadPushStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const rawDartItems = sortByPublishedAtDesc(dartData?.items ?? []);
   const rawSecItems = sortByPublishedAtDesc(secData?.items ?? []);
   const count = props.type === "dart" ? rawDartItems.length : rawSecItems.length;
@@ -324,6 +377,16 @@ export function FeedPage(props: FeedPageProps) {
           <span>표시 건수 {count}건</span>
           <span>페이지 {currentPage} / {totalPages}</span>
           <span>갱신 시각 {fetchedAt ? formatTime(fetchedAt) : "-"}</span>
+          <div className={styles.pushDebug}>
+            <span>푸시 지원: {pushStatus?.supported ? "예" : "아니오"}</span>
+            <span>권한: {pushStatus?.permission ?? "-"}</span>
+            <span>구독 존재: {pushStatus?.subscriptionExists ? "예" : "아니오"}</span>
+            <span>저장된 구독 수: {pushStatus?.savedCount ?? 0}</span>
+            <span>최근 저장 시각: {pushStatus?.lastSaved ? formatTime(pushStatus.lastSaved) : "-"}</span>
+            <span>최근 User-Agent: {pushStatus?.latestUserAgent ?? "-"}</span>
+            <span>Endpoint: {pushStatus?.endpoint ? "있음" : "없음"}</span>
+            {pushStatus?.error ? <span>오류: {pushStatus.error}</span> : null}
+          </div>
           <button type="button" className={styles.testButton} onClick={handleTestPush} disabled={pushTesting}>
             {pushTesting ? "전송 중..." : "테스트 푸시 보내기"}
           </button>

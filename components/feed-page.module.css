@@ -86,6 +86,21 @@
   color: var(--muted);
 }
 
+.pushDebug {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: #f7fbff;
+}
+
+.pushDebug span {
+  font-size: 12px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
 .testButton {
   min-height: 42px;
   padding: 0 14px;

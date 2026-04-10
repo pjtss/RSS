@@ -46,3 +46,15 @@ export interface PushSubscriptionRecord {
   auth: string;
   userAgent?: string;
 }
+
+export interface PushDebugStatus {
+  supported: boolean;
+  permission: NotificationPermission | "unsupported";
+  serviceWorkerRegistered: boolean;
+  subscriptionExists: boolean;
+  endpoint?: string;
+  lastSaved?: string;
+  savedCount?: number;
+  latestUserAgent?: string;
+  error?: string;
+}
