@@ -4,8 +4,8 @@ export default function SecPage() {
   return (
     <FeedPage
       type="sec"
-      title="SEC 호재·악재 공시"
-      description="SEC Latest Filings Atom 피드에서 관심 폼 중 호재 가능과 악재 가능 공시를 선별해서 별도 페이지에서 보여줍니다."
+      title="SEC 금일 공시"
+      description="SEC Latest Filings Atom 피드에서 오늘 공시된 항목 전체를 서울 시간 기준으로 추려서 최신순으로 보여줍니다."
     />
   );
 }

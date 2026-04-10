@@ -130,16 +130,7 @@ const SEC_NEGATIVE_KEYWORDS = [
   "TERMINATION",
 ];
 
-const SEC_TARGET_FORMS = new Set([
-  "8-K",
-  "10-K",
-  "10-Q",
-  "6-K",
-  "S-1",
-  "424B3",
-  "SC 13D",
-  "SC 13G",
-]);
+const SEOUL_TIME_ZONE = "Asia/Seoul";
 
 function ensureArray<T>(value: T | T[] | undefined): T[] {
   if (!value) {
@@ -163,6 +154,41 @@ function normalizeText(value: unknown): string {
     return stripCdata(String(value["#text"]));
   }
   return "";
+}
+
+function toSeoulDateKey(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: SEOUL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function getTodayInSeoul(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: SEOUL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function sortByPublishedAtDesc<T extends { publishedAt: string }>(items: T[]): T[] {
+  return [...items].sort((left, right) => {
+    const leftTime = new Date(left.publishedAt).getTime();
+    const rightTime = new Date(right.publishedAt).getTime();
+    return rightTime - leftTime;
+  });
 }
 
 function extractDartCompany(title: string): string {
@@ -206,6 +232,7 @@ type DartRawItem = {
 };
 
 export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
+  const todayInSeoul = getTodayInSeoul();
   const response = await fetch(DART_URL, {
     cache: "no-store",
     headers: {
@@ -219,11 +246,13 @@ export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
 
   const xml = await response.text();
   const parsed = parser.parse(xml);
-  const items = ensureArray<DartRawItem>(parsed?.rss?.channel?.item)
+  const items = sortByPublishedAtDesc(
+    ensureArray<DartRawItem>(parsed?.rss?.channel?.item)
     .map((item) => {
       const title = normalizeText(item.title);
+      const publishedAt = normalizeText(item.pubDate);
       const judgment = classifyDartTitle(title);
-      if (!["최강호재", "호재가능", "악재"].includes(judgment)) {
+      if (toSeoulDateKey(publishedAt) !== todayInSeoul) {
         return null;
       }
 
@@ -233,11 +262,12 @@ export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
         title,
         judgment,
         keywords: extractDartKeywords(title),
-        publishedAt: normalizeText(item.pubDate),
+        publishedAt,
         link: normalizeText(item.link),
       };
     })
-    .filter((item): item is DartItem => item !== null);
+    .filter((item): item is DartItem => item !== null),
+  );
 
   return {
     source: "DART",
@@ -330,6 +360,7 @@ function extractSecLink(entry: SecRawEntry): string {
 }
 
 export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
+  const todayInSeoul = getTodayInSeoul();
   const response = await fetch(SEC_URL, {
     cache: "no-store",
     headers: {
@@ -344,13 +375,14 @@ export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
 
   const xml = await response.text();
   const parsed = parser.parse(xml);
-  const items = ensureArray<SecRawEntry>(parsed?.feed?.entry).reduce<SecItem[]>((acc, entry) => {
+  const items = sortByPublishedAtDesc(ensureArray<SecRawEntry>(parsed?.feed?.entry).reduce<SecItem[]>((acc, entry) => {
       const title = normalizeText(entry.title);
       const summary = normalizeText(entry.summary);
       const formType = extractSecFormType(entry, title, summary);
       const sentiment = classifySecEntry(formType, title, summary);
+      const publishedAt = normalizeText(entry.published) || normalizeText(entry.updated);
 
-      if (!SEC_TARGET_FORMS.has(formType) || !["호재가능", "악재가능"].includes(sentiment)) {
+      if (toSeoulDateKey(publishedAt) !== todayInSeoul) {
         return acc;
       }
 
@@ -360,14 +392,14 @@ export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
         company: extractSecCompany(title),
         formType,
         sentiment,
-        publishedAt: normalizeText(entry.published) || normalizeText(entry.updated),
+        publishedAt,
         title,
         summary,
         link: extractSecLink(entry),
       });
 
       return acc;
-    }, []);
+    }, []));
 
   return {
     source: "SEC",

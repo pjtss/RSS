@@ -4,8 +4,8 @@ export default function DartPage() {
   return (
     <FeedPage
       type="dart"
-      title="DART 호재·악재 공시"
-      description="한국 DART RSS에서 기존 Python 분류 기준상 호재와 악재로 판단된 공시를 추려서 실시간에 가깝게 보여줍니다."
+      title="DART 금일 공시"
+      description="한국 DART RSS에서 오늘 공시된 항목 전체를 서울 시간 기준으로 추려서 최신순으로 보여줍니다."
     />
   );
 }
