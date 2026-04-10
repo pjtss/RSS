@@ -202,6 +202,7 @@ export function FeedPage(props: FeedPageProps) {
   const [secData, setSecData] = useState<FeedPayload<SecItem> | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const [page, setPage] = useState(1);
+  const [pushTesting, setPushTesting] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -290,6 +291,23 @@ export function FeedPage(props: FeedPageProps) {
   const dartItems = paginateItems(rawDartItems, currentPage);
   const secItems = paginateItems(rawSecItems, currentPage);
 
+  async function handleTestPush() {
+    try {
+      setPushTesting(true);
+      const response = await fetch("/api/push/test", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("테스트 푸시 전송 실패");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "테스트 푸시 전송 실패");
+    } finally {
+      setPushTesting(false);
+    }
+  }
+
   return (
     <main className={styles.page}>
       <Navigation current={props.type} />
@@ -306,6 +324,9 @@ export function FeedPage(props: FeedPageProps) {
           <span>표시 건수 {count}건</span>
           <span>페이지 {currentPage} / {totalPages}</span>
           <span>갱신 시각 {fetchedAt ? formatTime(fetchedAt) : "-"}</span>
+          <button type="button" className={styles.testButton} onClick={handleTestPush} disabled={pushTesting}>
+            {pushTesting ? "전송 중..." : "테스트 푸시 보내기"}
+          </button>
         </div>
       </section>
 

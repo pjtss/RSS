@@ -108,3 +108,17 @@ export async function sendPushAlerts(alerts: AlertItem[]) {
     }
   }
 }
+
+export async function sendTestPush() {
+  await sendPushAlerts([
+    {
+      source: "DART",
+      externalId: `test-${Date.now()}`,
+      level: "테스트호재",
+      company: "PJT RSS",
+      title: "테스트 푸시 알림입니다.",
+      link: "https://pjt-rss.netlify.app/sec",
+      publishedAt: new Date().toISOString(),
+    },
+  ]);
+}
