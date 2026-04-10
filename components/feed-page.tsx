@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
+import type { AlertItem, DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
@@ -203,6 +203,7 @@ export function FeedPage(props: FeedPageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const [page, setPage] = useState(1);
   const intervalRef = useRef<number | null>(null);
+  const notifiedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -218,11 +219,13 @@ export function FeedPage(props: FeedPageProps) {
           const data = (await response.json()) as FeedPayload<DartItem>;
           if (!cancelled) {
             setDartData(data);
+            showNotifications(data.newAlerts ?? []);
           }
         } else {
           const data = (await response.json()) as FeedPayload<SecItem>;
           if (!cancelled) {
             setSecData(data);
+            showNotifications(data.newAlerts ?? []);
           }
         }
 
@@ -264,6 +267,37 @@ export function FeedPage(props: FeedPageProps) {
       }
 
       stopPolling();
+    }
+
+    function showNotifications(alerts: AlertItem[]) {
+      if (typeof window === "undefined" || !("Notification" in window)) {
+        return;
+      }
+
+      if (Notification.permission !== "granted") {
+        return;
+      }
+
+      for (const alert of alerts) {
+        const id = `${alert.source}:${alert.externalId}`;
+        if (notifiedIdsRef.current.has(id)) {
+          continue;
+        }
+
+        notifiedIdsRef.current.add(id);
+        const notification = new Notification(`[${alert.level}] ${alert.company}`, {
+          body: alert.title,
+          tag: id,
+        });
+
+        notification.onclick = () => {
+          window.open(alert.link, "_blank", "noopener,noreferrer");
+        };
+      }
+    }
+
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
     }
 
     void loadFeed();
