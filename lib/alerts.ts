@@ -1,6 +1,6 @@
-import { ensureSchema, getPool } from "@/lib/db";
-import { fetchDartFeed, fetchSecFeed, getTodayInSeoul } from "@/lib/rss";
-import type { AlertItem, DartItem, FeedPayload, SecItem } from "@/lib/types";
+import { ensureSchema, getPool } from "./db";
+import { fetchDartFeed, fetchSecFeed, getTodayInSeoul } from "./rss";
+import type { AlertItem, DartItem, FeedPayload, SecItem } from "./types";
 
 function toPublishedDateSeoul(value: string): string {
   const date = new Date(value);
@@ -24,7 +24,7 @@ function toAlertItem(item: DartItem | SecItem): AlertItem {
   };
 }
 
-async function insertAlertEvents(alerts: AlertItem[]) {
+export async function markAlertsDelivered(alerts: AlertItem[]) {
   if (alerts.length === 0) {
     return;
   }
@@ -196,7 +196,6 @@ export async function syncDartAlerts(): Promise<FeedPayload<DartItem>> {
 
   const todayInSeoul = getTodayInSeoul();
   const newAlerts = await loadNewAlerts("DART", todayInSeoul);
-  await insertAlertEvents(newAlerts);
 
   return {
     ...payload,
@@ -211,7 +210,6 @@ export async function syncSecAlerts(): Promise<FeedPayload<SecItem>> {
 
   const todayInSeoul = getTodayInSeoul();
   const newAlerts = await loadNewAlerts("SEC", todayInSeoul);
-  await insertAlertEvents(newAlerts);
 
   return {
     ...payload,

@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { PushProvider } from "@/components/push-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "RSS Monitor",
   description: "DART와 SEC RSS를 실시간에 가깝게 모니터링하는 대시보드",
+  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -13,7 +15,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <PushProvider />
+        {children}
+      </body>
     </html>
   );
 }

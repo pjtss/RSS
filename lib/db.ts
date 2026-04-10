@@ -55,6 +55,18 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id BIGSERIAL PRIMARY KEY,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        user_agent TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS filings_source_date_idx
       ON filings (source, published_date_seoul DESC, published_at DESC);
     `);

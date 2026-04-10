@@ -39,3 +39,10 @@ export interface FeedPayload<T> {
   items: T[];
   newAlerts?: AlertItem[];
 }
+
+export interface PushSubscriptionRecord {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  userAgent?: string;
+}
