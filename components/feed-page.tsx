@@ -6,20 +6,24 @@ import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from 
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
+const PAGE_SIZE = 50;
 
 type FeedKind = "dart" | "sec";
 type ViewMode = "latest" | "grouped";
+type FeedScope = "all" | "bullish" | "bearish";
 
 type FeedPageProps =
   | {
       type: "dart";
       title: string;
       description: string;
+      scope?: FeedScope;
     }
   | {
       type: "sec";
       title: string;
       description: string;
+      scope?: FeedScope;
     };
 
 function formatTime(value: string): string {
@@ -64,12 +68,75 @@ function Navigation({ current }: { current: FeedKind }) {
   );
 }
 
+function ScopeNavigation({ type, scope }: { type: FeedKind; scope: FeedScope }) {
+  const items =
+    type === "dart"
+      ? [
+          { href: "/dart", label: "전체" },
+          { href: "/dart/bullish", label: "호재" },
+          { href: "/dart/bearish", label: "악재" },
+        ]
+      : [
+          { href: "/sec", label: "전체" },
+          { href: "/sec/bullish", label: "호재" },
+          { href: "/sec/bearish", label: "악재" },
+        ];
+
+  const activeHref =
+    type === "dart"
+      ? scope === "bullish"
+        ? "/dart/bullish"
+        : scope === "bearish"
+          ? "/dart/bearish"
+          : "/dart"
+      : scope === "bullish"
+        ? "/sec/bullish"
+        : scope === "bearish"
+          ? "/sec/bearish"
+          : "/sec";
+
+  return (
+    <nav className={styles.scopeNav}>
+      {items.map((item) => (
+        <Link key={item.href} className={item.href === activeHref ? styles.scopeActive : styles.scopeLink} href={item.href}>
+          {item.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 function sortByPublishedAtDesc<T extends { publishedAt: string }>(items: T[]): T[] {
   return [...items].sort((left, right) => {
     const leftTime = new Date(left.publishedAt).getTime();
     const rightTime = new Date(right.publishedAt).getTime();
     return rightTime - leftTime;
   });
+}
+
+function paginateItems<T>(items: T[], page: number): T[] {
+  const start = (page - 1) * PAGE_SIZE;
+  return items.slice(start, start + PAGE_SIZE);
+}
+
+function filterDartItems(items: DartItem[], scope: FeedScope): DartItem[] {
+  if (scope === "bullish") {
+    return items.filter((item) => item.judgment === "최강호재" || item.judgment === "호재가능");
+  }
+  if (scope === "bearish") {
+    return items.filter((item) => item.judgment === "악재");
+  }
+  return items;
+}
+
+function filterSecItems(items: SecItem[], scope: FeedScope): SecItem[] {
+  if (scope === "bullish") {
+    return items.filter((item) => item.sentiment === "호재가능");
+  }
+  if (scope === "bearish") {
+    return items.filter((item) => item.sentiment === "악재가능");
+  }
+  return items;
 }
 
 function DartSections({ items }: { items: DartItem[] }) {
@@ -193,11 +260,13 @@ function SecTable({ items }: { items: SecItem[] }) {
 }
 
 export function FeedPage(props: FeedPageProps) {
+  const scope = props.scope ?? "all";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dartData, setDartData] = useState<FeedPayload<DartItem> | null>(null);
   const [secData, setSecData] = useState<FeedPayload<SecItem> | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
+  const [page, setPage] = useState(1);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -273,14 +342,32 @@ export function FeedPage(props: FeedPageProps) {
     };
   }, [props.type]);
 
-  const count = props.type === "dart" ? (dartData?.items.length ?? 0) : (secData?.items.length ?? 0);
+  useEffect(() => {
+    setPage(1);
+    if (scope !== "all") {
+      setViewMode("latest");
+    }
+  }, [props.type, scope]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [viewMode]);
+
+  const rawDartItems = sortByPublishedAtDesc(dartData?.items ?? []);
+  const rawSecItems = sortByPublishedAtDesc(secData?.items ?? []);
+  const scopedDartItems = filterDartItems(rawDartItems, scope);
+  const scopedSecItems = filterSecItems(rawSecItems, scope);
+  const count = props.type === "dart" ? scopedDartItems.length : scopedSecItems.length;
   const fetchedAt = props.type === "dart" ? dartData?.fetchedAt : secData?.fetchedAt;
-  const dartItems = sortByPublishedAtDesc(dartData?.items ?? []);
-  const secItems = sortByPublishedAtDesc(secData?.items ?? []);
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const dartItems = paginateItems(scopedDartItems, currentPage);
+  const secItems = paginateItems(scopedSecItems, currentPage);
 
   return (
     <main className={styles.page}>
       <Navigation current={props.type} />
+      <ScopeNavigation type={props.type} scope={scope} />
 
       <section className={styles.hero}>
         <div>
@@ -292,6 +379,7 @@ export function FeedPage(props: FeedPageProps) {
           <strong>{loading ? "불러오는 중" : "실행 중"}</strong>
           <span>새로고침 주기 {REFRESH_MS / 1000}초</span>
           <span>표시 건수 {count}건</span>
+          <span>페이지 {currentPage} / {totalPages}</span>
           <span>갱신 시각 {fetchedAt ? formatTime(fetchedAt) : "-"}</span>
         </div>
       </section>
@@ -313,6 +401,7 @@ export function FeedPage(props: FeedPageProps) {
               type="button"
               className={viewMode === "grouped" ? styles.segmentActive : styles.segment}
               onClick={() => setViewMode("grouped")}
+              disabled={scope !== "all"}
             >
               분류별
             </button>
@@ -329,6 +418,29 @@ export function FeedPage(props: FeedPageProps) {
         ) : (
           <p className={styles.empty}>현재 조건에 맞는 SEC 공시가 없습니다.</p>
         )}
+        {count > PAGE_SIZE ? (
+          <div className={styles.pagination}>
+            <button
+              type="button"
+              className={styles.pageButton}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={currentPage === 1}
+            >
+              이전
+            </button>
+            <span className={styles.pageInfo}>
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              className={styles.pageButton}
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={currentPage === totalPages}
+            >
+              다음
+            </button>
+          </div>
+        ) : null}
       </section>
     </main>
   );
