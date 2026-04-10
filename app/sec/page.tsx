@@ -4,8 +4,8 @@ export default function SecPage() {
   return (
     <FeedPage
       type="sec"
-      title="SEC 금일 공시"
-      description="SEC Latest Filings Atom 피드에서 오늘 공시된 항목 전체를 서울 시간 기준으로 추려서 최신순으로 보여줍니다."
+      title="SEC 금일 호재 공시"
+      description="SEC Latest Filings Atom 피드에서 오늘 공시된 항목 중 호재만 서울 시간 기준으로 추려서 최신순으로 보여줍니다."
     />
   );
 }

@@ -10,8 +10,9 @@ const parser = new XMLParser({
 });
 
 const DART_URL = "https://dart.fss.or.kr/api/todayRSS.xml";
-const SEC_URL =
-  "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&company=&count=100&dateb=&output=atom&owner=include&start=0";
+const SEC_PAGE_SIZE = 100;
+const SEC_BASE_URL =
+  "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&company=&count=100&dateb=&output=atom&owner=include";
 const SEC_USER_AGENT = "MySecWatcher/1.0 your_email@example.com";
 
 const DART_IMPORTANT_KEYWORDS = [
@@ -174,7 +175,7 @@ function toSeoulDateKey(value: string): string | null {
   }).format(date);
 }
 
-function getTodayInSeoul(): string {
+export function getTodayInSeoul(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: SEOUL_TIME_ZONE,
     year: "numeric",
@@ -252,7 +253,7 @@ export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
       const title = normalizeText(item.title);
       const publishedAt = normalizeText(item.pubDate);
       const judgment = classifyDartTitle(title);
-      if (toSeoulDateKey(publishedAt) !== todayInSeoul) {
+      if (toSeoulDateKey(publishedAt) !== todayInSeoul || !["최강호재", "호재가능"].includes(judgment)) {
         return null;
       }
 
@@ -361,30 +362,43 @@ function extractSecLink(entry: SecRawEntry): string {
 
 export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
   const todayInSeoul = getTodayInSeoul();
-  const response = await fetch(SEC_URL, {
-    cache: "no-store",
-    headers: {
-      Accept: "application/atom+xml, application/xml, text/xml",
-      "User-Agent": SEC_USER_AGENT,
-    },
-  });
+  const allItems: SecItem[] = [];
 
-  if (!response.ok) {
-    throw new Error(`SEC RSS 요청 실패: ${response.status}`);
-  }
+  for (let start = 0; start <= 1000; start += SEC_PAGE_SIZE) {
+    const response = await fetch(`${SEC_BASE_URL}&start=${start}`, {
+      cache: "no-store",
+      headers: {
+        Accept: "application/atom+xml, application/xml, text/xml",
+        "User-Agent": SEC_USER_AGENT,
+      },
+    });
 
-  const xml = await response.text();
-  const parsed = parser.parse(xml);
-  const items = sortByPublishedAtDesc(ensureArray<SecRawEntry>(parsed?.feed?.entry).reduce<SecItem[]>((acc, entry) => {
+    if (!response.ok) {
+      throw new Error(`SEC RSS 요청 실패: ${response.status}`);
+    }
+
+    const xml = await response.text();
+    const parsed = parser.parse(xml);
+    const entries = ensureArray<SecRawEntry>(parsed?.feed?.entry);
+
+    if (entries.length === 0) {
+      break;
+    }
+
+    let foundTodayInPage = false;
+
+    const pageItems = entries.reduce<SecItem[]>((acc, entry) => {
       const title = normalizeText(entry.title);
       const summary = normalizeText(entry.summary);
       const formType = extractSecFormType(entry, title, summary);
       const sentiment = classifySecEntry(formType, title, summary);
       const publishedAt = normalizeText(entry.published) || normalizeText(entry.updated);
 
-      if (toSeoulDateKey(publishedAt) !== todayInSeoul) {
+      if (toSeoulDateKey(publishedAt) !== todayInSeoul || sentiment !== "호재가능") {
         return acc;
       }
+
+      foundTodayInPage = true;
 
       acc.push({
         source: "SEC" as const,
@@ -399,7 +413,16 @@ export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
       });
 
       return acc;
-    }, []));
+    }, []);
+
+    allItems.push(...pageItems);
+
+    if (!foundTodayInPage || entries.length < SEC_PAGE_SIZE) {
+      break;
+    }
+  }
+
+  const items = sortByPublishedAtDesc(allItems);
 
   return {
     source: "SEC",

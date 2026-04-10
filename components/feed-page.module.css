@@ -15,34 +15,6 @@
   box-shadow: var(--shadow);
 }
 
-.scopeNav {
-  display: inline-flex;
-  gap: 8px;
-  padding: 6px;
-  margin: 0 0 24px;
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: var(--shadow);
-}
-
-.scopeLink,
-.scopeActive {
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.scopeLink {
-  color: var(--muted);
-}
-
-.scopeActive {
-  background: #f3f9ff;
-  color: var(--accent);
-}
-
 .navLink,
 .navActive {
   padding: 10px 18px;
@@ -330,8 +302,4 @@
     align-items: flex-start;
   }
 
-  .scopeNav {
-    display: flex;
-    flex-wrap: wrap;
-  }
 }
