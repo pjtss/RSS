@@ -131,6 +131,8 @@ const SEC_NEGATIVE_KEYWORDS = [
   "TERMINATION",
 ];
 
+const SEC_STRONG_POSITIVE_FORMS = ["8-K", "10-K", "10-Q", "6-K", "SC 13D", "SC 13G"];
+
 const SEOUL_TIME_ZONE = "Asia/Seoul";
 
 function ensureArray<T>(value: T | T[] | undefined): T[] {
@@ -342,7 +344,7 @@ function extractSecCompany(title: string): string {
 function classifySecEntry(formType: string, title: string, summary: string): SecSentiment {
   const text = `${formType} ${title} ${summary}`.toUpperCase();
 
-  if (SEC_POSITIVE_KEYWORDS.some((keyword) => text.includes(keyword))) {
+  if (SEC_STRONG_POSITIVE_FORMS.includes(formType) && SEC_POSITIVE_KEYWORDS.some((keyword) => text.includes(keyword))) {
     return "호재가능";
   }
   if (SEC_NEGATIVE_KEYWORDS.some((keyword) => text.includes(keyword))) {
