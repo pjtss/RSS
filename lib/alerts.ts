@@ -2,6 +2,9 @@ import { ensureSchema, getPool } from "./db";
 import { fetchDartFeed, fetchSecFeed, getTodayInSeoul } from "./rss";
 import type { AlertItem, DartItem, FeedPayload, SecItem } from "./types";
 
+const DART_BULLISH_LEVELS = ["최강호재", "호재가능"];
+const SEC_BULLISH_LEVELS = ["호재가능"];
+
 function toPublishedDateSeoul(value: string): string {
   const date = new Date(value);
   return new Intl.DateTimeFormat("en-CA", {
@@ -58,7 +61,7 @@ async function loadNewAlerts(source: "DART" | "SEC", todayInSeoul: string): Prom
   const client = await getPool().connect();
 
   try {
-    const bullishLevels = source === "DART" ? ["최강호재", "호재가능"] : ["호재가능"];
+    const bullishLevels = source === "DART" ? DART_BULLISH_LEVELS : SEC_BULLISH_LEVELS;
     const { rows } = await client.query(
       `
         SELECT source, external_id, company, title, judgment, link, published_at
@@ -217,9 +220,10 @@ export async function syncSecAlerts(): Promise<FeedPayload<SecItem>> {
   };
 }
 
-export async function getRecentDartBullishFeed(hours = 1): Promise<FeedPayload<DartItem>> {
+export async function getTodayDartBullishFeed(): Promise<FeedPayload<DartItem>> {
   await ensureSchema();
   const client = await getPool().connect();
+  const todayInSeoul = getTodayInSeoul();
 
   try {
     const { rows } = await client.query(
@@ -228,10 +232,10 @@ export async function getRecentDartBullishFeed(hours = 1): Promise<FeedPayload<D
         FROM filings
         WHERE source = 'DART'
           AND judgment = ANY($1::text[])
-          AND published_at >= NOW() - ($2::text || ' hours')::interval
+          AND published_date_seoul = $2::date
         ORDER BY published_at DESC
       `,
-      [["최강호재", "호재가능"], String(hours)],
+      [DART_BULLISH_LEVELS, todayInSeoul],
     );
 
     return {
@@ -252,9 +256,10 @@ export async function getRecentDartBullishFeed(hours = 1): Promise<FeedPayload<D
   }
 }
 
-export async function getRecentSecBullishFeed(hours = 1): Promise<FeedPayload<SecItem>> {
+export async function getTodaySecBullishFeed(): Promise<FeedPayload<SecItem>> {
   await ensureSchema();
   const client = await getPool().connect();
+  const todayInSeoul = getTodayInSeoul();
 
   try {
     const { rows } = await client.query(
@@ -262,11 +267,11 @@ export async function getRecentSecBullishFeed(hours = 1): Promise<FeedPayload<Se
         SELECT external_id, company, title, judgment, form_type, summary, published_at, link
         FROM filings
         WHERE source = 'SEC'
-          AND judgment = '호재가능'
-          AND published_at >= NOW() - ($1::text || ' hours')::interval
+          AND judgment = ANY($1::text[])
+          AND published_date_seoul = $2::date
         ORDER BY published_at DESC
       `,
-      [String(hours)],
+      [SEC_BULLISH_LEVELS, todayInSeoul],
     );
 
     return {
