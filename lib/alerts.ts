@@ -24,6 +24,7 @@ function toAlertItem(item: DartItem | SecItem): AlertItem {
     title: item.title,
     link: item.link,
     publishedAt: item.publishedAt,
+    keywords: item.source === "DART" ? item.keywords : undefined,
   };
 }
 
@@ -64,7 +65,7 @@ async function loadNewAlerts(source: "DART" | "SEC", todayInSeoul: string): Prom
     const bullishLevels = source === "DART" ? DART_BULLISH_LEVELS : SEC_BULLISH_LEVELS;
     const { rows } = await client.query(
       `
-        SELECT source, external_id, company, title, judgment, link, published_at
+        SELECT source, external_id, company, title, judgment, keywords, link, published_at
         FROM filings
         WHERE source = $1
           AND published_date_seoul = $2::date
@@ -88,6 +89,7 @@ async function loadNewAlerts(source: "DART" | "SEC", todayInSeoul: string): Prom
       title: row.title,
       link: row.link,
       publishedAt: new Date(row.published_at).toISOString(),
+      keywords: row.source === "DART" ? row.keywords ?? [] : undefined,
     }));
   } finally {
     client.release();

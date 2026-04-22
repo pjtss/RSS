@@ -9,6 +9,7 @@ export interface AlertItem {
   title: string;
   link: string;
   publishedAt: string;
+  keywords?: string[];
 }
 
 export interface DartItem {

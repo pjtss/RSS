@@ -4,6 +4,31 @@ import type { AlertItem, PushSubscriptionRecord } from "./types";
 
 let configured = false;
 
+function formatSeoulTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function buildNotificationBody(alert: AlertItem): string {
+  const seoulTime = formatSeoulTime(alert.publishedAt);
+
+  if (alert.source === "DART") {
+    const keyword = alert.keywords?.[0];
+    return [alert.title, keyword ? `키워드: ${keyword}` : null, seoulTime].filter(Boolean).join(" | ");
+  }
+
+  return [alert.title, seoulTime].filter(Boolean).join(" | ");
+}
+
 function configureWebPush() {
   if (configured) {
     return;
@@ -117,7 +142,7 @@ export async function sendPushAlerts(alerts: AlertItem[]) {
   for (const alert of alerts) {
     const payload = JSON.stringify({
       title: `[${alert.level}] ${alert.company}`,
-      body: alert.title,
+      body: buildNotificationBody(alert),
       url: alert.link,
       tag: `${alert.source}:${alert.externalId}`,
     });
