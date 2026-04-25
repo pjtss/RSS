@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { OpenDartFastItem, OpenDartFastPayload } from "@/lib/opendart-fast";
+import { PageNavigation } from "./page-navigation";
 import styles from "./opendart-fast-page.module.css";
 
 const REFRESH_MS = 5000;
@@ -97,6 +98,7 @@ export function OpenDartFastPage() {
 
   return (
     <main className={styles.page}>
+      <PageNavigation current="dart-opendart-fast" />
       <section className={styles.hero}>
         <div>
           <p className={styles.kicker}>OPEN DART FAST MONITOR</p>

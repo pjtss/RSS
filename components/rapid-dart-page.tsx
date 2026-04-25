@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { DartItem, FeedPayload } from "@/lib/types";
+import { PageNavigation } from "./page-navigation";
 import styles from "./rapid-dart-page.module.css";
 
 const REFRESH_MS = 5000;
@@ -124,6 +125,7 @@ export function RapidDartPage() {
 
   return (
     <main className={styles.page}>
+      <PageNavigation current="dart-rapid" />
       <header className={styles.hero}>
         <div>
           <p className={styles.kicker}>KOREA STOCK FAST TRACK</p>
@@ -136,8 +138,8 @@ export function RapidDartPage() {
           <Link href="/dart" className={styles.secondary}>
             일반 DART 화면
           </Link>
-          <Link href="/" className={styles.secondary}>
-            홈
+          <Link href="/dart/opendart-fast" className={styles.secondary}>
+            OPEN DART 빠른 공시
           </Link>
         </div>
       </header>

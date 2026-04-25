@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
 import { usePushDebug } from "./push-provider";
+import { PageNavigation } from "./page-navigation";
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
 const PAGE_SIZE = 50;
 
-type FeedKind = "dart" | "sec";
 type ViewMode = "latest" | "grouped";
 
 type FeedPageProps =
@@ -48,19 +48,6 @@ function judgmentClass(value: string): string {
     return styles.warn;
   }
   return styles.neutral;
-}
-
-function Navigation({ current }: { current: FeedKind }) {
-  return (
-    <nav className={styles.nav}>
-      <Link className={current === "dart" ? styles.navActive : styles.navLink} href="/dart">
-        DART
-      </Link>
-      <Link className={current === "sec" ? styles.navActive : styles.navLink} href="/sec">
-        SEC
-      </Link>
-    </nav>
-  );
 }
 
 function sortByPublishedAtDesc<T extends { publishedAt: string }>(items: T[]): T[] {
@@ -324,7 +311,7 @@ export function FeedPage(props: FeedPageProps) {
 
   return (
     <main className={styles.page}>
-      <Navigation current={props.type} />
+      <PageNavigation current={props.type} />
 
       <section className={styles.hero}>
         <div>
