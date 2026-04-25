@@ -46,6 +46,7 @@
 }
 
 .primary,
+.primaryAlt,
 .secondary {
   display: inline-flex;
   align-items: center;
@@ -58,6 +59,11 @@
 
 .primary {
   background: var(--accent);
+  color: #ffffff;
+}
+
+.primaryAlt {
+  background: #0f172a;
   color: #ffffff;
 }
 

@@ -1,0 +1,213 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import type { DartItem, FeedPayload } from "@/lib/types";
+import styles from "./rapid-dart-page.module.css";
+
+const REFRESH_MS = 5000;
+const RECENT_WINDOW_MINUTES = 5;
+
+function formatTime(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function minutesAgo(value: string): number {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+}
+
+function isStrongBullish(item: DartItem): boolean {
+  return item.judgment.includes("최강호재");
+}
+
+function sortRapidItems(items: DartItem[]): DartItem[] {
+  return [...items].sort((left, right) => {
+    const leftStrong = isStrongBullish(left) ? 1 : 0;
+    const rightStrong = isStrongBullish(right) ? 1 : 0;
+
+    if (leftStrong !== rightStrong) {
+      return rightStrong - leftStrong;
+    }
+
+    return new Date(right.publishedAt).getTime() - new Date(left.publishedAt).getTime();
+  });
+}
+
+export function RapidDartPage() {
+  const [data, setData] = useState<FeedPayload<DartItem> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFeed() {
+      try {
+        const response = await fetch("/api/dart", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("DART 급속 페이지 데이터를 불러오지 못했습니다.");
+        }
+
+        const payload = (await response.json()) as FeedPayload<DartItem>;
+        if (!cancelled) {
+          setData(payload);
+          setError(null);
+          setLoading(false);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "급속 페이지 로딩 실패");
+          setLoading(false);
+        }
+      }
+    }
+
+    function stopPolling() {
+      if (intervalRef.current !== null) {
+        window.clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    function startPolling() {
+      stopPolling();
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+
+      intervalRef.current = window.setInterval(() => {
+        void loadFeed();
+      }, REFRESH_MS);
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void loadFeed();
+        startPolling();
+        return;
+      }
+
+      stopPolling();
+    }
+
+    void loadFeed();
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopPolling();
+    };
+  }, []);
+
+  const items = useMemo(() => sortRapidItems(data?.items ?? []), [data]);
+  const topItems = items.slice(0, 12);
+  const strongCount = items.filter((item) => isStrongBullish(item)).length;
+  const recentCount = items.filter((item) => minutesAgo(item.publishedAt) <= RECENT_WINDOW_MINUTES).length;
+
+  return (
+    <main className={styles.page}>
+      <header className={styles.hero}>
+        <div>
+          <p className={styles.kicker}>KOREA STOCK FAST TRACK</p>
+          <h1>국내 주식 급속 호재</h1>
+          <p className={styles.description}>
+            DART 호재 공시를 5초 주기로 다시 확인하면서 최강호재를 위로 끌어올린 빠른 감시 화면입니다.
+          </p>
+        </div>
+        <div className={styles.actions}>
+          <Link href="/dart" className={styles.secondary}>
+            일반 DART 화면
+          </Link>
+          <Link href="/" className={styles.secondary}>
+            홈
+          </Link>
+        </div>
+      </header>
+
+      <section className={styles.stats}>
+        <article className={styles.statCard}>
+          <span>새로고침</span>
+          <strong>{REFRESH_MS / 1000}초</strong>
+        </article>
+        <article className={styles.statCard}>
+          <span>금일 호재 수</span>
+          <strong>{items.length}건</strong>
+        </article>
+        <article className={styles.statCard}>
+          <span>최강호재</span>
+          <strong>{strongCount}건</strong>
+        </article>
+        <article className={styles.statCard}>
+          <span>최근 {RECENT_WINDOW_MINUTES}분</span>
+          <strong>{recentCount}건</strong>
+        </article>
+      </section>
+
+      <section className={styles.panel}>
+        <div className={styles.panelHeader}>
+          <div>
+            <h2>빠른 확인 리스트</h2>
+            <p>최강호재 우선, 그다음 최신순입니다.</p>
+          </div>
+          <span className={styles.meta}>
+            {loading ? "불러오는 중" : `갱신 ${data?.fetchedAt ? formatTime(data.fetchedAt) : "-"}`}
+          </span>
+        </div>
+
+        {error ? <p className={styles.error}>{error}</p> : null}
+
+        {topItems.length > 0 ? (
+          <div className={styles.feed}>
+            {topItems.map((item) => {
+              const recent = minutesAgo(item.publishedAt) <= RECENT_WINDOW_MINUTES;
+              return (
+                <article key={item.link} className={styles.card}>
+                  <div className={styles.cardTop}>
+                    <span className={isStrongBullish(item) ? styles.strongBadge : styles.normalBadge}>{item.judgment}</span>
+                    {recent ? <span className={styles.flashBadge}>방금 공시</span> : null}
+                    <time>{formatTime(item.publishedAt)}</time>
+                  </div>
+                  <strong className={styles.company}>{item.company}</strong>
+                  <a href={item.link} target="_blank" rel="noreferrer" className={styles.title}>
+                    {item.title}
+                  </a>
+                  <div className={styles.keywordRow}>
+                    {item.keywords.length > 0 ? (
+                      item.keywords.slice(0, 3).map((keyword) => (
+                        <span key={`${item.link}-${keyword}`} className={styles.keyword}>
+                          {keyword}
+                        </span>
+                      ))
+                    ) : (
+                      <span className={styles.keywordEmpty}>키워드 없음</span>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <p className={styles.empty}>현재 표시할 국내 주식 호재 공시가 없습니다.</p>
+        )}
+      </section>
+    </main>
+  );
+}
