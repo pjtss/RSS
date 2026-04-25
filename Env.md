@@ -14,7 +14,7 @@
 
 ### `VAPID_SUBJECT`
 - Web Push 발송자 식별값
-- 예: `mailto:pjtrss@pjtrss.com`
+- 예: `mailto:you@example.com`
 
 ## Optional for Open DART Fast Page
 
