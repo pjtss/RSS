@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
-import { usePushDebug } from "./push-provider";
 import { PageNavigation } from "./page-navigation";
+import { usePushDebug } from "./push-provider";
 import styles from "./feed-page.module.css";
 
 const REFRESH_MS = 15000;
@@ -192,7 +191,7 @@ export function FeedPage(props: FeedPageProps) {
   const [page, setPage] = useState(1);
   const [pushTesting, setPushTesting] = useState(false);
   const intervalRef = useRef<number | null>(null);
-  const { status: pushStatus, enablePush, refreshStatus, enabling } = usePushDebug();
+  const { status: pushStatus, enablePush, updatePreferences, refreshStatus, enabling, saving } = usePushDebug();
 
   useEffect(() => {
     let cancelled = false;
@@ -252,10 +251,9 @@ export function FeedPage(props: FeedPageProps) {
       if (document.visibilityState === "visible") {
         void loadFeed();
         startPolling();
-        return;
+      } else {
+        stopPolling();
       }
-
-      stopPolling();
     }
 
     void loadFeed();
@@ -282,6 +280,61 @@ export function FeedPage(props: FeedPageProps) {
   const dartItems = paginateItems(rawDartItems, currentPage);
   const secItems = paginateItems(rawSecItems, currentPage);
 
+  async function handleEnablePush() {
+    try {
+      await enablePush();
+      await refreshStatus();
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "알림 활성화 실패");
+    }
+  }
+
+  async function handleToggleAll() {
+    try {
+      if (!pushStatus?.subscriptionExists) {
+        await handleEnablePush();
+        return;
+      }
+
+      const enabled = !(pushStatus.enabled ?? true);
+      await updatePreferences({
+        enabled,
+        dartEnabled: enabled ? (pushStatus.dartEnabled ?? true) : false,
+        secEnabled: enabled ? (pushStatus.secEnabled ?? true) : false,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "푸시 설정 변경 실패");
+    }
+  }
+
+  async function handleToggleSource(source: "dart" | "sec") {
+    try {
+      if (!pushStatus?.subscriptionExists) {
+        await handleEnablePush();
+        return;
+      }
+
+      if (source === "dart") {
+        const nextDart = !(pushStatus.dartEnabled ?? true);
+        await updatePreferences({
+          enabled: true,
+          dartEnabled: nextDart,
+          secEnabled: pushStatus.secEnabled ?? true,
+        });
+      } else {
+        const nextSec = !(pushStatus.secEnabled ?? true);
+        await updatePreferences({
+          enabled: true,
+          dartEnabled: pushStatus.dartEnabled ?? true,
+          secEnabled: nextSec,
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "푸시 설정 변경 실패");
+    }
+  }
+
   async function handleTestPush() {
     try {
       setPushTesting(true);
@@ -296,16 +349,6 @@ export function FeedPage(props: FeedPageProps) {
       setError(err instanceof Error ? err.message : "테스트 푸시 전송 실패");
     } finally {
       setPushTesting(false);
-    }
-  }
-
-  async function handleEnablePush() {
-    try {
-      await enablePush();
-      await refreshStatus();
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "알림 활성화 실패");
     }
   }
 
@@ -330,20 +373,37 @@ export function FeedPage(props: FeedPageProps) {
             <span>권한: {pushStatus?.permission ?? "-"}</span>
             <span>현재 기기 구독 존재: {pushStatus?.subscriptionExists ? "예" : "아니오"}</span>
             <span>현재 기기 DB 저장: {pushStatus?.currentDeviceSaved ? "예" : "아니오"}</span>
+            <span>전체 푸시: {pushStatus?.enabled === false ? "꺼짐" : "켜짐"}</span>
+            <span>DART 푸시: {pushStatus?.dartEnabled === false ? "꺼짐" : "켜짐"}</span>
+            <span>SEC 푸시: {pushStatus?.secEnabled === false ? "꺼짐" : "켜짐"}</span>
             <span>저장된 구독 수: {pushStatus?.savedCount ?? 0}</span>
             <span>최근 저장 시각: {pushStatus?.lastSaved ? formatTime(pushStatus.lastSaved) : "-"}</span>
             <span>최근 User-Agent: {pushStatus?.latestUserAgent ?? "-"}</span>
             <span>Endpoint: {pushStatus?.endpoint ? "있음" : "없음"}</span>
             {pushStatus?.error ? <span>오류: {pushStatus.error}</span> : null}
           </div>
+
           <button
             type="button"
             className={styles.enableButton}
             onClick={handleEnablePush}
             disabled={enabling || !pushStatus?.supported}
           >
-            {enabling ? "알림 활성화 중.." : "알림 활성화"}
+            {enabling ? "알림 활성화 중.." : "알림 권한/구독 활성화"}
           </button>
+
+          <div className={styles.toggleRow}>
+            <button type="button" className={styles.toggleButton} onClick={handleToggleAll} disabled={saving}>
+              {pushStatus?.enabled === false ? "전체 푸시 켜기" : "전체 푸시 끄기"}
+            </button>
+            <button type="button" className={styles.toggleButton} onClick={() => handleToggleSource("dart")} disabled={saving}>
+              {pushStatus?.dartEnabled === false ? "DART 푸시 켜기" : "DART 푸시 끄기"}
+            </button>
+            <button type="button" className={styles.toggleButton} onClick={() => handleToggleSource("sec")} disabled={saving}>
+              {pushStatus?.secEnabled === false ? "SEC 푸시 켜기" : "SEC 푸시 끄기"}
+            </button>
+          </div>
+
           <button type="button" className={styles.testButton} onClick={handleTestPush} disabled={pushTesting}>
             {pushTesting ? "전송 중.." : "테스트 푸시 보내기"}
           </button>

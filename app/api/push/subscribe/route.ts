@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ensureSchema } from "@/lib/db";
-import { loadPushSubscriptionDebug, savePushSubscription } from "@/lib/push";
+import { loadPushSubscriptionDebug, savePushSubscription, updatePushSubscriptionPreferences } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,9 @@ export async function POST(request: Request) {
       p256dh: body.keys?.p256dh,
       auth: body.keys?.auth,
       userAgent: request.headers.get("user-agent") ?? undefined,
+      enabled: body.enabled ?? true,
+      dartEnabled: body.dartEnabled ?? true,
+      secEnabled: body.secEnabled ?? true,
     });
 
     const debug = await loadPushSubscriptionDebug(body.endpoint);
@@ -23,9 +26,41 @@ export async function POST(request: Request) {
       currentDeviceSaved: debug.currentDeviceSaved,
       latestUpdatedAt: debug.latest?.updatedAt ?? null,
       latestEndpoint: debug.latest?.endpoint ?? null,
+      enabled: debug.currentDevice?.enabled ?? true,
+      dartEnabled: debug.currentDevice?.dartEnabled ?? true,
+      secEnabled: debug.currentDevice?.secEnabled ?? true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "푸시 구독 저장에 실패했습니다.";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    await ensureSchema();
+    await updatePushSubscriptionPreferences({
+      endpoint: body.endpoint,
+      p256dh: "",
+      auth: "",
+      enabled: body.enabled ?? true,
+      dartEnabled: body.dartEnabled ?? true,
+      secEnabled: body.secEnabled ?? true,
+    });
+
+    const debug = await loadPushSubscriptionDebug(body.endpoint);
+
+    return NextResponse.json({
+      ok: true,
+      currentDeviceSaved: debug.currentDeviceSaved,
+      latestUpdatedAt: debug.latest?.updatedAt ?? null,
+      enabled: debug.currentDevice?.enabled ?? true,
+      dartEnabled: debug.currentDevice?.dartEnabled ?? true,
+      secEnabled: debug.currentDevice?.secEnabled ?? true,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "푸시 설정 저장에 실패했습니다.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -43,6 +78,9 @@ export async function GET(request: Request) {
       latestEndpoint: debug.latest?.endpoint ?? null,
       latestUpdatedAt: debug.latest?.updatedAt ?? null,
       latestUserAgent: debug.latest?.userAgent ?? null,
+      enabled: debug.currentDevice?.enabled ?? true,
+      dartEnabled: debug.currentDevice?.dartEnabled ?? true,
+      secEnabled: debug.currentDevice?.secEnabled ?? true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "푸시 구독 상태 조회에 실패했습니다.";

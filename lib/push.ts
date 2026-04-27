@@ -52,15 +52,47 @@ export async function savePushSubscription(subscription: PushSubscriptionRecord)
   try {
     await client.query(
       `
-        INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_agent)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO push_subscriptions (endpoint, p256dh, auth, user_agent, enabled, dart_enabled, sec_enabled)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (endpoint) DO UPDATE SET
           p256dh = EXCLUDED.p256dh,
           auth = EXCLUDED.auth,
           user_agent = EXCLUDED.user_agent,
+          enabled = EXCLUDED.enabled,
+          dart_enabled = EXCLUDED.dart_enabled,
+          sec_enabled = EXCLUDED.sec_enabled,
           updated_at = NOW()
       `,
-      [subscription.endpoint, subscription.p256dh, subscription.auth, subscription.userAgent ?? null],
+      [
+        subscription.endpoint,
+        subscription.p256dh,
+        subscription.auth,
+        subscription.userAgent ?? null,
+        subscription.enabled ?? true,
+        subscription.dartEnabled ?? true,
+        subscription.secEnabled ?? true,
+      ],
+    );
+  } finally {
+    client.release();
+  }
+}
+
+export async function updatePushSubscriptionPreferences(subscription: PushSubscriptionRecord) {
+  const client = await getPool().connect();
+
+  try {
+    await client.query(
+      `
+        UPDATE push_subscriptions
+        SET
+          enabled = $2,
+          dart_enabled = $3,
+          sec_enabled = $4,
+          updated_at = NOW()
+        WHERE endpoint = $1
+      `,
+      [subscription.endpoint, subscription.enabled ?? true, subscription.dartEnabled ?? true, subscription.secEnabled ?? true],
     );
   } finally {
     client.release();
@@ -82,7 +114,11 @@ export async function loadPushSubscriptions(): Promise<PushSubscriptionRecord[]>
 
   try {
     const { rows } = await client.query(
-      "SELECT endpoint, p256dh, auth, user_agent FROM push_subscriptions ORDER BY updated_at DESC",
+      `
+        SELECT endpoint, p256dh, auth, user_agent, enabled, dart_enabled, sec_enabled
+        FROM push_subscriptions
+        ORDER BY updated_at DESC
+      `,
     );
 
     return rows.map((row) => ({
@@ -90,6 +126,9 @@ export async function loadPushSubscriptions(): Promise<PushSubscriptionRecord[]>
       p256dh: row.p256dh,
       auth: row.auth,
       userAgent: row.user_agent ?? undefined,
+      enabled: row.enabled ?? true,
+      dartEnabled: row.dart_enabled ?? true,
+      secEnabled: row.sec_enabled ?? true,
     }));
   } finally {
     client.release();
@@ -102,21 +141,43 @@ export async function loadPushSubscriptionDebug(endpoint?: string) {
   try {
     const { rows } = await client.query(
       `
-        SELECT endpoint, user_agent, updated_at
+        SELECT endpoint, user_agent, updated_at, enabled, dart_enabled, sec_enabled
         FROM push_subscriptions
         ORDER BY updated_at DESC
       `,
     );
 
     let currentDeviceSaved = false;
+    let currentDevice = null as null | {
+      enabled: boolean;
+      dartEnabled: boolean;
+      secEnabled: boolean;
+    };
+
     if (endpoint) {
-      const result = await client.query("SELECT 1 FROM push_subscriptions WHERE endpoint = $1 LIMIT 1", [endpoint]);
+      const result = await client.query(
+        `
+          SELECT enabled, dart_enabled, sec_enabled
+          FROM push_subscriptions
+          WHERE endpoint = $1
+          LIMIT 1
+        `,
+        [endpoint],
+      );
       currentDeviceSaved = (result.rowCount ?? 0) > 0;
+      if (currentDeviceSaved) {
+        currentDevice = {
+          enabled: result.rows[0].enabled ?? true,
+          dartEnabled: result.rows[0].dart_enabled ?? true,
+          secEnabled: result.rows[0].sec_enabled ?? true,
+        };
+      }
     }
 
     return {
       count: rows.length,
       currentDeviceSaved,
+      currentDevice,
       latest:
         rows.length > 0
           ? {
@@ -148,6 +209,14 @@ export async function sendPushAlerts(alerts: AlertItem[]) {
     });
 
     for (const subscription of subscriptions) {
+      const allowed =
+        subscription.enabled !== false &&
+        (alert.source === "DART" ? subscription.dartEnabled !== false : subscription.secEnabled !== false);
+
+      if (!allowed) {
+        continue;
+      }
+
       try {
         await webpush.sendNotification(
           {

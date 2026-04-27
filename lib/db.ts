@@ -61,9 +61,27 @@ export async function ensureSchema() {
         p256dh TEXT NOT NULL,
         auth TEXT NOT NULL,
         user_agent TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        dart_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        sec_enabled BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+    `);
+
+    await client.query(`
+      ALTER TABLE push_subscriptions
+      ADD COLUMN IF NOT EXISTS enabled BOOLEAN NOT NULL DEFAULT TRUE
+    `);
+
+    await client.query(`
+      ALTER TABLE push_subscriptions
+      ADD COLUMN IF NOT EXISTS dart_enabled BOOLEAN NOT NULL DEFAULT TRUE
+    `);
+
+    await client.query(`
+      ALTER TABLE push_subscriptions
+      ADD COLUMN IF NOT EXISTS sec_enabled BOOLEAN NOT NULL DEFAULT TRUE
     `);
 
     await client.query(`

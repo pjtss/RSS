@@ -20,8 +20,10 @@ declare global {
 type PushContextValue = {
   status: PushDebugStatus | null;
   enablePush: () => Promise<void>;
+  updatePreferences: (next: { enabled?: boolean; dartEnabled?: boolean; secEnabled?: boolean }) => Promise<void>;
   refreshStatus: () => Promise<void>;
   enabling: boolean;
+  saving: boolean;
 };
 
 const PushContext = createContext<PushContextValue | null>(null);
@@ -52,14 +54,13 @@ async function readLocalStatus(): Promise<PushDebugStatus> {
 export function PushProvider({ children }: { children?: ReactNode }) {
   const [status, setStatus] = useState<PushDebugStatus | null>(null);
   const [enabling, setEnabling] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function refreshStatus() {
     try {
       const localStatus = await readLocalStatus();
       const search = localStatus.endpoint ? `?endpoint=${encodeURIComponent(localStatus.endpoint)}` : "";
-      const response = await fetch(`/api/push/subscribe${search}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(`/api/push/subscribe${search}`, { cache: "no-store" });
       const data = await response.json();
 
       const nextStatus: PushDebugStatus = {
@@ -68,6 +69,9 @@ export function PushProvider({ children }: { children?: ReactNode }) {
         savedCount: data.savedCount ?? undefined,
         lastSaved: data.latestUpdatedAt ?? undefined,
         latestUserAgent: data.latestUserAgent ?? undefined,
+        enabled: data.enabled ?? true,
+        dartEnabled: data.dartEnabled ?? true,
+        secEnabled: data.secEnabled ?? true,
         error: undefined,
       };
 
@@ -124,9 +128,7 @@ export function PushProvider({ children }: { children?: ReactNode }) {
 
     try {
       const permission =
-        Notification.permission === "granted"
-          ? "granted"
-          : await Notification.requestPermission();
+        Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
 
       if (permission !== "granted") {
         const permissionStatus: PushDebugStatus = {
@@ -157,7 +159,12 @@ export function PushProvider({ children }: { children?: ReactNode }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(subscription),
+        body: JSON.stringify({
+          ...subscription.toJSON(),
+          enabled: true,
+          dartEnabled: true,
+          secEnabled: true,
+        }),
       });
       const result = await response.json();
 
@@ -170,6 +177,9 @@ export function PushProvider({ children }: { children?: ReactNode }) {
         endpoint: subscription.endpoint,
         lastSaved: result.latestUpdatedAt ?? undefined,
         savedCount: result.savedCount ?? undefined,
+        enabled: result.enabled ?? true,
+        dartEnabled: result.dartEnabled ?? true,
+        secEnabled: result.secEnabled ?? true,
         actionRequired: false,
       };
 
@@ -191,6 +201,46 @@ export function PushProvider({ children }: { children?: ReactNode }) {
     }
   }
 
+  async function updatePreferences(next: { enabled?: boolean; dartEnabled?: boolean; secEnabled?: boolean }) {
+    if (!status?.endpoint || saving) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const response = await fetch("/api/push/subscribe", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          endpoint: status.endpoint,
+          enabled: next.enabled ?? status.enabled ?? true,
+          dartEnabled: next.dartEnabled ?? status.dartEnabled ?? true,
+          secEnabled: next.secEnabled ?? status.secEnabled ?? true,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error || "푸시 설정 저장 실패");
+      }
+
+      const nextStatus: PushDebugStatus = {
+        ...(status ?? {}),
+        enabled: result.enabled ?? true,
+        dartEnabled: result.dartEnabled ?? true,
+        secEnabled: result.secEnabled ?? true,
+        lastSaved: result.latestUpdatedAt ?? status.lastSaved,
+      };
+
+      window.__pushDebug = nextStatus;
+      setStatus(nextStatus);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   useEffect(() => {
     void refreshStatus();
   }, []);
@@ -199,10 +249,12 @@ export function PushProvider({ children }: { children?: ReactNode }) {
     () => ({
       status,
       enablePush,
+      updatePreferences,
       refreshStatus,
       enabling,
+      saving,
     }),
-    [status, enabling],
+    [status, enabling, saving],
   );
 
   return <PushContext.Provider value={value}>{children ?? null}</PushContext.Provider>;

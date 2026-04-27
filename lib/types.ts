@@ -46,6 +46,9 @@ export interface PushSubscriptionRecord {
   p256dh: string;
   auth: string;
   userAgent?: string;
+  enabled?: boolean;
+  dartEnabled?: boolean;
+  secEnabled?: boolean;
 }
 
 export interface PushDebugStatus {
@@ -59,5 +62,8 @@ export interface PushDebugStatus {
   savedCount?: number;
   latestUserAgent?: string;
   actionRequired?: boolean;
+  enabled?: boolean;
+  dartEnabled?: boolean;
+  secEnabled?: boolean;
   error?: string;
 }
