@@ -129,23 +129,9 @@ type DartRawItem = {
   pubDate?: unknown;
 };
 
-export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
-  const todayInSeoul = getTodayInSeoul();
-  const response = await fetch(DART_URL, {
-    cache: "no-store",
-    headers: {
-      Accept: "application/rss+xml, application/xml, text/xml",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`DART RSS 요청 실패: ${response.status}`);
-  }
-
-  const xml = await response.text();
+export function parseDartItems(xml: string, todayInSeoul: string): DartItem[] {
   const parsed = parser.parse(xml);
-  const items = sortByPublishedAtDesc(
-    ensureArray<DartRawItem>(parsed?.rss?.channel?.item)
+  return ensureArray<DartRawItem>(parsed?.rss?.channel?.item)
     .map((item) => {
       const title = normalizeText(item.title);
       const publishedAt = normalizeText(item.pubDate);
@@ -164,8 +150,24 @@ export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
         link: normalizeText(item.link),
       };
     })
-    .filter((item): item is DartItem => item !== null),
-  );
+    .filter((item): item is DartItem => item !== null);
+}
+
+export async function fetchDartFeed(): Promise<FeedPayload<DartItem>> {
+  const todayInSeoul = getTodayInSeoul();
+  const response = await fetch(DART_URL, {
+    cache: "no-store",
+    headers: {
+      Accept: "application/rss+xml, application/xml, text/xml",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`DART RSS 요청 실패: ${response.status}`);
+  }
+
+  const xml = await response.text();
+  const items = sortByPublishedAtDesc(parseDartItems(xml, todayInSeoul));
 
   return {
     source: "DART",
@@ -257,6 +259,46 @@ function extractSecLink(entry: SecRawEntry): string {
   return alternate?.href ?? "";
 }
 
+export function parseSecItems(xml: string, todayInSeoul: string): { items: SecItem[]; foundToday: boolean } {
+  const parsed = parser.parse(xml);
+  const entries = ensureArray<SecRawEntry>(parsed?.feed?.entry);
+  
+  if (entries.length === 0) {
+    return { items: [], foundToday: false };
+  }
+
+  let foundToday = false;
+  const items = entries.reduce<SecItem[]>((acc, entry) => {
+    const title = normalizeText(entry.title);
+    const summary = normalizeText(entry.summary);
+    const formType = extractSecFormType(entry, title, summary);
+    const sentiment = classifySecEntry(formType, title, summary);
+    const publishedAt = normalizeText(entry.published) || normalizeText(entry.updated);
+
+    if (toSeoulDateKey(publishedAt) !== todayInSeoul || sentiment !== "호재가능") {
+      return acc;
+    }
+
+    foundToday = true;
+
+    acc.push({
+      source: "SEC" as const,
+      accession: extractSecAccession(entry),
+      company: extractSecCompany(title),
+      formType,
+      sentiment,
+      publishedAt,
+      title,
+      summary,
+      link: extractSecLink(entry),
+    });
+
+    return acc;
+  }, []);
+
+  return { items, foundToday };
+}
+
 export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
   const todayInSeoul = getTodayInSeoul();
   const allItems: SecItem[] = [];
@@ -275,46 +317,10 @@ export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
     }
 
     const xml = await response.text();
-    const parsed = parser.parse(xml);
-    const entries = ensureArray<SecRawEntry>(parsed?.feed?.entry);
+    const { items, foundToday } = parseSecItems(xml, todayInSeoul);
+    allItems.push(...items);
 
-    if (entries.length === 0) {
-      break;
-    }
-
-    let foundTodayInPage = false;
-
-    const pageItems = entries.reduce<SecItem[]>((acc, entry) => {
-      const title = normalizeText(entry.title);
-      const summary = normalizeText(entry.summary);
-      const formType = extractSecFormType(entry, title, summary);
-      const sentiment = classifySecEntry(formType, title, summary);
-      const publishedAt = normalizeText(entry.published) || normalizeText(entry.updated);
-
-      if (toSeoulDateKey(publishedAt) !== todayInSeoul || sentiment !== "호재가능") {
-        return acc;
-      }
-
-      foundTodayInPage = true;
-
-      acc.push({
-        source: "SEC" as const,
-        accession: extractSecAccession(entry),
-        company: extractSecCompany(title),
-        formType,
-        sentiment,
-        publishedAt,
-        title,
-        summary,
-        link: extractSecLink(entry),
-      });
-
-      return acc;
-    }, []);
-
-    allItems.push(...pageItems);
-
-    if (!foundTodayInPage || entries.length < SEC_PAGE_SIZE) {
+    if (!foundToday || items.length === 0) {
       break;
     }
   }

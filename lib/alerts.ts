@@ -208,24 +208,24 @@ async function saveSecItems(items: SecItem[]) {
 }
 */
 
-export async function syncDartAlerts(): Promise<FeedPayload<DartItem>> {
-  // await ensureSchema();
-  const payload = await fetchDartFeed();
-  // await saveDartItems(payload.items);
+export function filterNewItems<T extends { publishedAt: string }>(items: T[], maxMinutes: number): T[] {
+  return items.filter((item) => minutesAgo(item.publishedAt) <= maxMinutes);
+}
 
-  // DB 없이 최근 1분 이내의 공시만 알림 주도록 최적화
-  const newAlerts: AlertItem[] = payload.items
-    .filter((item) => minutesAgo(item.publishedAt) === 0)
-    .map((item) => ({
-      source: item.source,
-      externalId: item.link,
-      level: item.judgment,
-      company: item.company,
-      title: item.title,
-      link: item.link,
-      publishedAt: item.publishedAt,
-      keywords: item.keywords,
-    }));
+export async function syncDartAlerts(): Promise<FeedPayload<DartItem>> {
+  const payload = await fetchDartFeed();
+  const recentItems = filterNewItems(payload.items, 0);
+  
+  const newAlerts: AlertItem[] = recentItems.map((item) => ({
+    source: item.source,
+    externalId: item.link,
+    level: item.judgment,
+    company: item.company,
+    title: item.title,
+    link: item.link,
+    publishedAt: item.publishedAt,
+    keywords: item.keywords,
+  }));
 
   return {
     ...payload,
@@ -234,22 +234,18 @@ export async function syncDartAlerts(): Promise<FeedPayload<DartItem>> {
 }
 
 export async function syncSecAlerts(): Promise<FeedPayload<SecItem>> {
-  // await ensureSchema();
   const payload = await fetchSecFeed();
-  // await saveSecItems(payload.items);
-
-  // DB 없이 최근 1분 이내의 공시만 알림 주도록 최적화
-  const newAlerts: AlertItem[] = payload.items
-    .filter((item) => minutesAgo(item.publishedAt) <= 1)
-    .map((item) => ({
-      source: item.source,
-      externalId: item.accession || item.link,
-      level: item.sentiment,
-      company: item.company,
-      title: item.title,
-      link: item.link,
-      publishedAt: item.publishedAt,
-    }));
+  const recentItems = filterNewItems(payload.items, 1);
+  
+  const newAlerts: AlertItem[] = recentItems.map((item) => ({
+    source: item.source,
+    externalId: item.accession || item.link,
+    level: item.sentiment,
+    company: item.company,
+    title: item.title,
+    link: item.link,
+    publishedAt: item.publishedAt,
+  }));
 
   return {
     ...payload,

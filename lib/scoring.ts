@@ -74,3 +74,22 @@ export function calculateDartScore(title: string): { score: number; keywords: st
 
   return { score: totalScore, keywords: matchedKeywords, judgment };
 }
+export function calculateMarketSentiment(items: { source: "DART" | "SEC"; judgment?: string; sentiment?: string }[]): { score: number; label: string } {
+  if (items.length === 0) return { score: 50, label: "NEUTRAL" };
+
+  let totalScore = 0;
+  
+  if (items[0].source === "DART") {
+    const strongCount = items.filter(i => i.judgment === "최강호재").length;
+    const normalCount = items.length - strongCount;
+    totalScore = ((strongCount * 100) + (normalCount * 60)) / items.length;
+  } else {
+    // SEC는 현재 호재가능만 필터링되므로 75점 기본값에서 데이터 양에 따라 보정
+    totalScore = Math.min(90, 60 + (items.length * 2));
+  }
+
+  const score = Math.min(100, Math.max(0, totalScore));
+  const label = score > 80 ? "EXTREME BULLISH" : score > 60 ? "BULLISH" : "NEUTRAL";
+
+  return { score, label };
+}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { GLOBAL_POLLING_INTERVAL, PAGE_SIZE } from "@/lib/constants";
 import { formatTime, getJudgmentStatus, paginateItems, sortByPublishedAtDesc } from "@/lib/utils";
 import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
+import { calculateMarketSentiment } from "@/lib/scoring";
 import { PageNavigation } from "./page-navigation";
 import { usePushDebug } from "./push-provider";
 import { getWatchlist, toggleWatchlist } from "@/lib/watchlist";
@@ -285,25 +286,10 @@ export function FeedPage(props: FeedPageProps) {
   const dartItems = paginateItems(rawDartItems, currentPage, PAGE_SIZE);
   const secItems = paginateItems(rawSecItems, currentPage, PAGE_SIZE);
 
-  // 시장 감성 지수 계산 로직 (DB 없이 현재 데이터 기반)
-  const calculateSentiment = () => {
-    const items = props.type === "dart" ? rawDartItems : rawSecItems;
-    if (items.length === 0) return 50;
-
-    if (props.type === "dart") {
-      const strongCount = (items as DartItem[]).filter(i => i.judgment === "최강호재").length;
-      const normalCount = items.length - strongCount;
-      // 최강호재 100점, 일반호재 60점 기준으로 가중 평균
-      const score = ((strongCount * 100) + (normalCount * 60)) / items.length;
-      return Math.min(100, Math.max(0, score));
-    } else {
-      // SEC는 현재 호재가능만 필터링되므로 75점 기본값에서 데이터 양에 따라 보정
-      return Math.min(90, 60 + (items.length * 2));
-    }
-  };
-
-  const sentimentScore = calculateSentiment();
-  const sentimentLabel = sentimentScore > 80 ? "EXTREME BULLISH" : sentimentScore > 60 ? "BULLISH" : "NEUTRAL";
+  // 모듈화된 함수 사용
+  const { score: sentimentScore, label: sentimentLabel } = calculateMarketSentiment(
+    props.type === "dart" ? rawDartItems : rawSecItems
+  );
 
   async function handleEnablePush() {
     try {

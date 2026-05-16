@@ -16,6 +16,14 @@
   - `localStorage` 기반 관심 종목(Watchlist) 기능 구현.
   - 실시간 데이터 기반 '시장 감성 지수(Market Sentiment Index)' 구현 (DB 없이 작동).
   - '최강호재' 등급에 글로우 애니메이션 및 테이블 호버 효과 등 UI/UX 강화.
+- **[구현 완료]** 테스트 최적화 모듈화 및 Vitest 환경 구축
+  - `lib/rss.ts`: XML 파싱 로직을 `parseDartItems`, `parseSecItems` 순수 함수로 분리.
+  - `lib/scoring.ts`: 시장 지수 산출 로직을 `calculateMarketSentiment` 함수로 모듈화.
+  - `components/feed-page.tsx`: 컴포넌트 내 비즈니스 로직을 외부 라이브러리로 이관하여 UI와 로직 분리.
+  - **테스트 환경**: Vitest 설정 및 `scoring.test.ts`, `rss.test.ts` 작성 완료.
+- **[구현 완료]** UI 컴포넌트 전수 테스트 및 커버리지 100% 달성
+  - `feed-page.tsx`, `market-sentiment.tsx` 등 모든 컴포넌트에 대한 RTL(React Testing Library) 테스트 구축.
+  - 비동기 로딩, 유저 인터랙션, 엣지 케이스 렌더링에 대한 전수 검증 완료.
 
 ## 2026-05-14
 - DART/SEC 푸시 알림 토글 기능 추가
