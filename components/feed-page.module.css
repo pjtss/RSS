@@ -9,11 +9,11 @@
   gap: 10px;
   padding: 8px;
   margin-bottom: 28px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--nav-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--nav-border);
   border-radius: 999px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
 .navLink,
@@ -26,11 +26,11 @@
 }
 
 .navLink {
-  color: #94a3b8;
+  color: var(--nav-link);
 }
 
 .navLink:hover {
-  color: #ffffff;
+  color: var(--nav-link-hover);
 }
 
 .navActive {
@@ -75,7 +75,7 @@
   margin: 0;
   font-size: clamp(34px, 6vw, 58px);
   line-height: 1.1;
-  color: #ffffff;
+  color: var(--text-hero);
   font-weight: 900;
   letter-spacing: -0.02em;
 }
@@ -83,7 +83,7 @@
 .description {
   max-width: 720px;
   margin: 18px 0 0;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 16px;
   line-height: 1.7;
 }
@@ -99,10 +99,10 @@
 
 .statusCard,
 .panel {
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--panel-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--panel-shadow);
 }
 
 .statusCard {
@@ -115,12 +115,12 @@
 
 .statusCard strong {
   font-size: 22px;
-  color: #ffffff;
+  color: var(--text-hero);
   font-weight: 800;
 }
 
 .statusCard span {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -128,16 +128,16 @@
   display: grid;
   gap: 6px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--pushDebug-border);
   border-radius: 14px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--pushDebug-bg);
 }
 
 .pushDebug span {
   font-size: 12px;
   line-height: 1.4;
   word-break: break-word;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .testButton {
@@ -160,17 +160,17 @@
 .enableButton {
   min-height: 42px;
   padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--enableButton-border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  background: var(--enableButton-bg);
+  color: var(--enableButton-color);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .enableButton:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--nav-link-hover-bg);
 }
 
 .testButton:disabled,
@@ -221,7 +221,7 @@
 }
 
 .toolbarLabel {
-  color: #cbd5e1;
+  color: var(--toolbar-label);
   font-size: 15px;
   font-weight: 800;
 }
@@ -230,8 +230,8 @@
   display: inline-flex;
   gap: 8px;
   padding: 6px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--segmented-bg);
+  border: 1px solid var(--segmented-border);
   border-radius: 999px;
 }
 
@@ -248,11 +248,11 @@
 
 .segment {
   background: transparent;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .segment:hover {
-  color: #ffffff;
+  color: var(--nav-link-hover);
 }
 
 .segment:disabled,
@@ -269,9 +269,9 @@
 
 .tableWrap {
   overflow-x: auto;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--tableWrap-border);
   border-radius: 20px;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--tableWrap-bg);
 }
 
 .table {
@@ -283,7 +283,7 @@
 .table th,
 .table td {
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--table-border-color);
   text-align: left;
   vertical-align: middle;
 }
@@ -293,25 +293,25 @@
 }
 
 .table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: var(--table-hover);
 }
 
 .table th {
-  color: #94a3b8;
+  color: var(--table-th-color);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--table-th-bg);
 }
 
 .table td a {
-  color: #cbd5e1;
+  color: var(--table-td-link);
   font-weight: 500;
 }
 
 .table td a:hover {
-  color: #ffffff;
+  color: var(--table-td-link-hover);
   text-decoration: underline;
 }
 
@@ -360,9 +360,9 @@
 }
 
 .neutral {
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  background: var(--neutral-bg);
+  border: 1px solid var(--neutral-border);
 }
 
 .empty,
@@ -374,9 +374,9 @@
 }
 
 .empty {
-  background: rgba(255, 255, 255, 0.02);
-  color: #94a3b8;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: var(--empty-bg);
+  color: var(--text-muted);
+  border: 1px dashed var(--empty-border);
 }
 
 .error {
@@ -402,18 +402,18 @@
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--groupHeader-border);
 }
 
 .groupHeader h2 {
   margin: 0;
   font-size: 20px;
-  color: #ffffff;
+  color: var(--groupHeader-h2);
   font-weight: 800;
 }
 
 .groupHeader span {
-  color: #94a3b8;
+  color: var(--groupHeader-span);
   font-size: 13px;
   font-weight: 700;
 }
@@ -429,18 +429,18 @@
 .pageButton {
   min-height: 40px;
   padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--pageButton-border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+  background: var(--pageButton-bg);
+  color: var(--pageButton-color);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .pageButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: var(--nav-link-hover-bg);
+  border-color: var(--border);
 }
 
 .pageButton:disabled {
@@ -449,7 +449,7 @@
 }
 
 .pageInfo {
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 700;
 }
 

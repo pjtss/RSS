@@ -189,3 +189,72 @@ button {
 .animate-in {
   animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
+
+/* ─────────────────────────────────────────────
+   Additional theme-aware CSS variables
+   (used by module CSS files)
+───────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --panel-bg: rgba(15, 23, 42, 0.4);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --panel-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.4);
+  --segmented-bg: rgba(0, 0, 0, 0.3);
+  --segmented-border: rgba(255, 255, 255, 0.05);
+  --tableWrap-bg: rgba(0, 0, 0, 0.2);
+  --tableWrap-border: rgba(255, 255, 255, 0.08);
+  --table-th-bg: rgba(255, 255, 255, 0.02);
+  --table-th-color: #94a3b8;
+  --table-td-link: #cbd5e1;
+  --table-td-link-hover: #ffffff;
+  --table-border-color: rgba(255, 255, 255, 0.05);
+  --table-hover: rgba(255, 255, 255, 0.03);
+  --pushDebug-bg: rgba(0, 0, 0, 0.2);
+  --pushDebug-border: rgba(255, 255, 255, 0.1);
+  --enableButton-bg: rgba(255, 255, 255, 0.05);
+  --enableButton-border: rgba(255, 255, 255, 0.15);
+  --enableButton-color: #ffffff;
+  --pageButton-bg: rgba(255, 255, 255, 0.05);
+  --pageButton-border: rgba(255, 255, 255, 0.15);
+  --pageButton-color: #ffffff;
+  --groupHeader-border: rgba(255, 255, 255, 0.05);
+  --groupHeader-h2: #ffffff;
+  --groupHeader-span: #94a3b8;
+  --empty-bg: rgba(255, 255, 255, 0.02);
+  --empty-border: rgba(255, 255, 255, 0.1);
+  --neutral-bg: rgba(255, 255, 255, 0.05);
+  --neutral-border: rgba(255, 255, 255, 0.1);
+  --toolbar-label: #cbd5e1;
+}
+
+[data-theme="light"] {
+  --panel-bg: rgba(255, 255, 255, 0.85);
+  --panel-border: rgba(0, 0, 0, 0.07);
+  --panel-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.08);
+  --segmented-bg: rgba(0, 0, 0, 0.04);
+  --segmented-border: rgba(0, 0, 0, 0.06);
+  --tableWrap-bg: rgba(255, 255, 255, 0.8);
+  --tableWrap-border: rgba(0, 0, 0, 0.06);
+  --table-th-bg: rgba(0, 0, 0, 0.02);
+  --table-th-color: #64748b;
+  --table-td-link: #334155;
+  --table-td-link-hover: #0f172a;
+  --table-border-color: rgba(0, 0, 0, 0.05);
+  --table-hover: rgba(0, 0, 0, 0.025);
+  --pushDebug-bg: rgba(0, 0, 0, 0.03);
+  --pushDebug-border: rgba(0, 0, 0, 0.08);
+  --enableButton-bg: rgba(0, 0, 0, 0.04);
+  --enableButton-border: rgba(0, 0, 0, 0.1);
+  --enableButton-color: #0f172a;
+  --pageButton-bg: rgba(0, 0, 0, 0.04);
+  --pageButton-border: rgba(0, 0, 0, 0.1);
+  --pageButton-color: #0f172a;
+  --groupHeader-border: rgba(0, 0, 0, 0.07);
+  --groupHeader-h2: #0f172a;
+  --groupHeader-span: #64748b;
+  --empty-bg: rgba(0, 0, 0, 0.02);
+  --empty-border: rgba(0, 0, 0, 0.08);
+  --neutral-bg: rgba(0, 0, 0, 0.04);
+  --neutral-border: rgba(0, 0, 0, 0.08);
+  --toolbar-label: #334155;
+}
