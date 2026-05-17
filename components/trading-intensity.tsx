@@ -44,7 +44,7 @@ export function TradingIntensity() {
             </div>
             <div className={styles.priceInfo}>
               <span className={styles.price}>{item.price}</span>
-              <span className={item.changeRate.startsWith("+") ? styles.up : styles.down}>
+              <span className={item.changeRate?.startsWith("+") ? styles.up : styles.down}>
                 {item.changeRate}
               </span>
             </div>

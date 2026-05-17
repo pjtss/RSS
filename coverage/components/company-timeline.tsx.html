@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/20</span>
+                <span class='fraction'>20/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">90.9% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/22</span>
+                <span class='fraction'>20/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/6</span>
+                <span class='fraction'>6/6</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">0% </span>
+                <span class="strong">100% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>18/18</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line low'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -156,35 +156,33 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -198,7 +196,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -237,34 +237,34 @@ interface CompanyTimelineProps {
   onClose: () =&gt; void;
 }
 &nbsp;
-export function <span class="fstat-no" title="function not covered" >CompanyTimeline({</span> company, items, onClose }: CompanyTimelineProps) {
-  const [timelineItems, <span class="cstat-no" title="statement not covered" >setTimelineItems] = useState&lt;any[]&gt;([]);</span>
-  const [loading, <span class="cstat-no" title="statement not covered" >setLoading] = useState(true);</span>
-  const [error, <span class="cstat-no" title="statement not covered" >setError] = useState&lt;string | null&gt;(null);</span>
+export function CompanyTimeline({ company, items, onClose }: CompanyTimelineProps) {
+  const [timelineItems, setTimelineItems] = useState&lt;any[]&gt;([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState&lt;string | null&gt;(null);
 &nbsp;
-<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >  useEffect(() =&gt; {</span></span>
-    async function <span class="fstat-no" title="function not covered" >loadHistory() {</span>
-<span class="cstat-no" title="statement not covered" >      setLoading(true);</span>
-<span class="cstat-no" title="statement not covered" >      try {</span>
-        const response = <span class="cstat-no" title="statement not covered" >await fetch(`/api/dart/history?company=${encodeURIComponent(company)}`);</span>
-<span class="cstat-no" title="statement not covered" >        if (!response.ok) <span class="cstat-no" title="statement not covered" >throw new Error("공시 히스토리 로드 실패");</span></span>
-        const data = <span class="cstat-no" title="statement not covered" >await response.json();</span>
-<span class="cstat-no" title="statement not covered" >        setTimelineItems(data);</span>
+  useEffect(() =&gt; {
+    async function loadHistory() {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/dart/history?company=${encodeURIComponent(company)}`);
+        if (!response.ok) throw new Error("공시 히스토리 로드 실패");
+        const data = await response.json();
+        setTimelineItems(data);
       } catch (err) {
-<span class="cstat-no" title="statement not covered" >        setError(err instanceof Error ? err.message : "히스토리를 불러올 수 없습니다.");</span>
+        setError(err instanceof Error ? err.message : <span class="branch-1 cbranch-no" title="branch not covered" >"히스토리를 불러올 수 없습니다.")</span>;
         // Fallback to local session items if API fails
-        const filtered = <span class="cstat-no" title="statement not covered" >items.<span class="fstat-no" title="function not covered" >filter(i</span>tem =&gt; <span class="cstat-no" title="statement not covered" >item.company === company)</span>;</span>
-<span class="cstat-no" title="statement not covered" >        setTimelineItems(filtered);</span>
+        const filtered = items.filter(item =&gt; item.company === company);
+        setTimelineItems(filtered);
       } finally {
-<span class="cstat-no" title="statement not covered" >        setLoading(false);</span>
+        setLoading(false);
       }
     }
-<span class="cstat-no" title="statement not covered" >    loadHistory();</span>
+    loadHistory();
   }, [company, items]);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  return (</span>
+  return (
     &lt;div className={styles.overlay} onClick={onClose}&gt;
-      &lt;div className={styles.modal} <span class="fstat-no" title="function not covered" >onClick={e</span> =&gt; <span class="cstat-no" title="statement not covered" >e.stopPropagation()}&gt;</span>
+      &lt;div className={styles.modal} onClick={e =&gt; e.stopPropagation()}&gt;
         &lt;header className={styles.header}&gt;
           &lt;div&gt;
             &lt;span className={styles.kicker}&gt;HISTORICAL TIMELINE&lt;/span&gt;
@@ -279,8 +279,8 @@ export function <span class="fstat-no" title="function not covered" >CompanyTime
             &lt;p className={styles.empty}&gt;{error}&lt;/p&gt;
           ) : timelineItems.length &gt; 0 ? (
             &lt;div className={styles.timeline}&gt;
-              {timelineItems.<span class="fstat-no" title="function not covered" >map((i</span>tem, i) =&gt; (
-<span class="cstat-no" title="statement not covered" >                &lt;div key={item.link || i} className={styles.item}&gt;</span>
+              {timelineItems.map((item, i) =&gt; (
+                &lt;div key={item.link || i} className={styles.item}&gt;
                   &lt;div className={styles.dot}&gt;&lt;/div&gt;
                   &lt;div className={styles.line}&gt;&lt;/div&gt;
                   &lt;div className={styles.time}&gt;
@@ -292,7 +292,7 @@ export function <span class="fstat-no" title="function not covered" >CompanyTime
                       item.judgment === "호재" ? styles.bullish :
                       item.judgment === "악재" ? styles.bearish : styles.neutral
                     }`}&gt;
-                      {item.judgment || item.sentiment}
+                      {item.judgment || <span class="branch-1 cbranch-no" title="branch not covered" >item.sentiment}</span>
                     &lt;/span&gt;
                     &lt;a href={item.link} target="_blank" rel="noreferrer" className={styles.title}&gt;
                       {item.title}
@@ -316,7 +316,7 @@ export function <span class="fstat-no" title="function not covered" >CompanyTime
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-17T05:29:29.252Z
+                at 2026-05-17T05:46:27.878Z
             </div>
         <script src="../prettify.js"></script>
         <script>

@@ -61,23 +61,30 @@
 }
 
 .tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  overflow-x: auto;
   gap: 8px;
   background: rgba(0, 0, 0, 0.2);
   padding: 6px;
   border-radius: 14px;
   margin-bottom: 20px;
   border: 1px solid rgba(255, 255, 255, 0.03);
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
+  flex: 1 0 auto;
+  text-align: center;
   background: transparent;
   border: none;
   color: #94a3b8;
   font-size: 12px;
   font-weight: 800;
-  padding: 10px 4px;
+  padding: 10px 12px;
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -232,4 +239,27 @@
 @keyframes pulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px;
+  }
+  .row {
+    padding: 10px 8px;
+  }
+  .priceCol {
+    margin-right: 8px;
+  }
+  .metricCol {
+    width: auto;
+    flex-shrink: 1;
+  }
+  .metric {
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+  .company {
+    font-size: 12px;
+  }
 }

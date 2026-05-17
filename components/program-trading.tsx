@@ -87,16 +87,16 @@ export function ProgramTradingTracker() {
               let highlight = false;
 
               if (activeTab === "program") {
-                metricText = `순매수 ${item.programNetBuy}`;
-                highlight = item.programNetBuy.startsWith("+");
+                metricText = `순매수 ${item.programNetBuy || ""}`;
+                highlight = item.programNetBuy?.startsWith("+") ?? false;
               } else if (activeTab === "buying") {
-                metricText = `외인 ${item.foreignNetBuy} | 기관 ${item.instNetBuy}`;
+                metricText = `외인 ${item.foreignNetBuy || ""} | 기관 ${item.instNetBuy || ""}`;
                 highlight = true;
               } else if (activeTab === "volume") {
-                metricText = `대비 ${item.volumeRatio} (${item.tradingValue})`;
+                metricText = `대비 ${item.volumeRatio || ""} (${item.tradingValue || ""})`;
                 highlight = true;
               } else if (activeTab === "intensity") {
-                metricText = `강도 ${item.intensity}%`;
+                metricText = `강도 ${item.intensity || 0}%`;
                 highlight = item.intensity > 100;
               }
 
@@ -111,7 +111,7 @@ export function ProgramTradingTracker() {
                   </div>
                   <div className={styles.priceCol}>
                     <span className={styles.price}>{item.price}원</span>
-                    <span className={`${styles.rate} ${item.changeRate.startsWith("+") ? styles.up : styles.down}`}>
+                    <span className={`${styles.rate} ${item.changeRate?.startsWith("+") ? styles.up : styles.down}`}>
                       {item.changeRate}
                     </span>
                   </div>

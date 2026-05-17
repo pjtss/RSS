@@ -494,6 +494,13 @@
 @media (max-width: 960px) {
   .hero {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .hero > div:first-child,
+  .hero > div:nth-child(2),
+  .hero > div:nth-child(3) {
+    min-width: 100% !important;
   }
 
   .page {
@@ -510,3 +517,5 @@
     align-items: flex-start;
   }
 }
+
+

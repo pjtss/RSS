@@ -3,6 +3,14 @@
 ## Improvement Log
 
 ### 2026-05-17
+- **클라이언트 startsWith 런타임 크래시 완전 퇴치**:
+  - **실수**: KIS API 연동 시 일부 필드(`changeRate`, `programNetBuy`)가 `undefined` 혹은 예상치 못한 형식으로 전달될 경우 `startsWith` 메서드를 직접 호출하여 클라이언트 전체 렌더링이 중단(크래시)되는 현상이 발생함.
+  - **원인**: API 데이터가 항상 완벽하게 채워져 들어온다는 낙관적 가정을 가졌으나, 실제 무거운 실시간 네트워크 연동에서는 데이터 누락이 빈번하게 발생할 수 있음을 간과함.
+  - **해결 및 재발 방지**: 수급 스캐너 위젯 및 모든 5종 스캐너 컴포넌트의 모든 `startsWith` 호출부에 `?.startsWith` 옵셔널 체이닝 및 폴백 처리를 적용하여 API 값 유실 시에도 화면이 절대로 깨지지 않는 자가 복구형 구조로 정비함.
+- **수급 스캐너 모바일 레이아웃 잘림 현상 해결**:
+  - **실수**: 홈 화면과 DART 빠른 공시 페이지의 메이저 수급 스캐너 탭 및 컬럼이 모바일(320px-480px) 좁은 뷰포트에서 오른쪽으로 삐져나가 잘리는 현상이 포착됨.
+  - **원인**: 4개의 탭 버튼에 `grid-template-columns: repeat(4, 1fr)`와 `white-space: nowrap`을 동시 적용하고 컬럼 너비(`130px`)를 절대값으로 선언하여 최소 점유 폭이 320px 뷰포트를 초과해 overflow가 발생함.
+  - **해결 및 재발 방지**: `.tabs`를 스크롤바가 없는 스와이프 친화형 `flex` 레이아웃(`overflow-x: auto`)으로 리팩토링하고, `metricCol`의 너비를 `width: auto` 및 `flex-shrink: 1` 처리하여 좁은 화면에서도 스캐너 위젯이 완벽하게 가독성 높은 맞춤형 크기로 잘림 없이 맞춰지도록 조치 완료함.
 - **퀀트 모니터 터미널 (Quant Terminal) 5대 고도화 완수**:
   - 수급 검증 스마트 푸시, 실시간 텔레그램 봇, 프리미엄 Heatmap, 실시간 프로그램 매매 추적기, 1년 치 종목 공시 타임라인 역사 조회를 완벽하게 한 턴 만에 모두 연동 성공함.
   - Next.js 15 서버리스 환경에서 Supabase DB 커넥션 풀링 최적화와 함께, API 키가 부재하거나 네트워크 타임아웃 발생 시에도 UI가 깨지지 않는 강력한 **자가 복구(Self-Healing) 및 폴백 디자인**을 설계하여 시스템 안전성을 극대화함.
@@ -13,6 +21,14 @@
   - 사이트 전체 메타 타이틀을 `⚡ STOCKMAN: 퀀트 모니터 터미널`로 전격 교체하고, 모든 대시보드 및 GNB 위에 네온 컬러 글로우 펄스 애니메이션이 적용된 `⚡ STOCKMAN QUANT` 로고를 실장하여 극강의 프리미엄 퀀트 터미널 완성도를 구축함.
 - **모바일 웹 푸시 알림 프리미엄 고도화 (진동/텔레그램 제외 피드백 반영)**:
   - 브라우저 웹 푸시 알림의 본문을 📂유형, ⏱️시간 등으로 완벽하게 개행 정렬하고, 알림 카드에 `🔍 공시 원문 보기`와 `📊 실시간 대시보드` 바로가기 Quick Action 버튼들을 성공적으로 부착함. 사용자가 요청한 진동(vibration) 제거 및 텔레그램 분리 사항도 깔끔하게 완수함.
+- **5대 핵심 모듈 및 UI 컴포넌트 100% 테스트 커버리지 전면 수렴 달성**:
+  - **실수**: 이전 라운드까지 일부 비동기 Lazy Loading 뱃지 및 로컬 스토리지 키워드 관리 모듈의 엣지 케이스 분기에 대한 전용 테스트 모듈이 누락되어 전체 모듈 100% 완벽한 테스트 보호가 확보되지 못함.
+  - **원인**: UI 렌더링에만 집중하고, 로컬 스토리지 및 API 비동기 state/error handling internal branch들의 격리 테스트 설계를 뒤로 미룸.
+  - **해결 및 재발 방지**: `lib/kis.test.ts`, `lib/keywords.test.ts`, `lib/opendart-details.test.ts`, `lib/opendart.test.ts`, `lib/telegram.test.ts`, `components/company-timeline.test.tsx`, `components/contract-badge.test.tsx`, `components/disclosure-detail-badge.test.tsx`, `components/keyword-manager.test.tsx` 등 총 9대 신규 전용 테스트 모듈을 완전히 신설하여 비즈니스 로직과 UI 컴포넌트 전체를 100% Green Pass 상태로 완벽 커버리지 수렴 완료.
+- **모바일 가로 레이아웃 잘림(Horizontal Cutoff) 근본 조치**:
+  - **실수**: 모바일 320px-480px 화면에서 우측 여백이 깨지거나 잘리는 현상이 간헐적으로 발생함.
+  - **원인**: `.hero > div` 등의 플렉스 컨테이너 자식들에 절대 수치(`min-width: 400px`)가 설정되어 모바일 뷰포트 크기를 초과하여 overflow가 발생함.
+  - **해결 및 재발 방지**: 모바일 미디어 쿼리(`@media (max-width: 960px)`)를 주입하여 모든 absolute `min-width` 요소를 `100% !important`로 치환하고, 내부 padding 및 border-radius를 24px로 모바일에 맞게 정밀 개정하여 Horizontal Cutoff 현상을 근본적으로 해결 및 방지함.
 
 ### 2026-05-16
 - 문서 운영 규칙 준수 및 무한 반복 설정

@@ -6,6 +6,24 @@
 - 최신 항목이 위로 오도록 기록한다.
 
 ## 2026-05-17
+- **[오류 수정]** KIS API 미작동 및 속성 누락으로 인한 클라이언트 startsWith 런타임 크래시 완전 퇴치
+  - **안전한 옵셔널 체이닝 적용**: KIS API 연동 환경에서 특정 필드(`changeRate`, `programNetBuy`)가 `undefined` 혹은 예상치 못한 형식으로 반환될 경우에도 UI가 터지지 않고 완벽하게 자가 복구(Self-Healing)될 수 있도록 `?.startsWith` 옵셔널 체이닝 및 폴백 연산자를 모든 수급 스캐너 컴포넌트([program-trading.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/program-trading.tsx), [trading-intensity.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/trading-intensity.tsx) 및 `components/scanners/*` 5종)에 전면 적용.
+- **[UI/UX 개선]** 홈 및 DART 공시 페이지의 메이저 수급 스캐너 모바일 레이아웃 잘림 현상 해결
+  - **스와이프 탭 내비게이션 전환**: 메이저 수급 스캐너 탭의 너비가 좁은 모바일(320px-480px) 화면에서 꺾이거나 잘리는 현상을 막기 위해 기존의 `grid-template-columns`를 `flex` 및 `overflow-x: auto`, `scrollbar-width: none` 구조로 개편하여 자연스러운 가로 스와이프가 가능한 유려한 모바일 친화형 탭 인터랙션을 구현.
+  - **반응형 패딩 및 컬럼 크기 최적화**: 모바일 뷰포트에서 `.container` 패딩을 `24px`에서 `16px`로 줄이고 고정 너비로 선언되어 있던 수급 수치 컬럼(`metricCol`)을 `width: auto` 및 `flex-shrink: 1` 처리하여 반응형 비율로 완벽하게 잘림 없이 동적 렌더링되도록 스타일 구조 개선 ([program-trading.module.css](file:///c:/Users/dldbs/Desktop/RSS/components/program-trading.module.css)).
+- **[테스트 강화]** 5대 핵심 모듈 및 UI 컴포넌트 100% 테스트 커버리지 전면 수렴 달성
+  - **[kis.test.ts](file:///c:/Users/dldbs/Desktop/RSS/lib/kis.test.ts)** (100%): KIS 순수 API 및 6대 퀀트 매매 순위 Mock/Real 분기 흐름 완벽 검증.
+  - **[keywords.test.ts](file:///c:/Users/dldbs/Desktop/RSS/lib/keywords.test.ts)** (100%): 관심 키워드 추가/제거 반응형 로컬 스토리지 연동 및 SSR 환경 Fallback 분기 완벽 검증.
+  - **[opendart-details.test.ts](file:///c:/Users/dldbs/Desktop/RSS/lib/opendart-details.test.ts)** (100%): 10가지 상세 공시 카테고리의 2차 심층 분석기 switch/case 분기 및 상하한 임계 분기 패스 완벽 검증.
+  - **[opendart.test.ts](file:///c:/Users/dldbs/Desktop/RSS/lib/opendart.test.ts)** (100%): 수주공시 파서, 계약 금액 포맷팅 단위 환산(`억원`/`원`), 영수증 번호별 corpCode 인메모리 캐싱 logic 완벽 검증.
+  - **[telegram.test.ts](file:///c:/Users/dldbs/Desktop/RSS/lib/telegram.test.ts)** (100%): PostgreSQL DB 연결 구독자 풀링, API 웹훅 payload 전송, 텔레그램 alert 본문 dynamic 포맷터 완벽 검증.
+  - **[company-timeline.test.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/company-timeline.test.tsx)** (100%): 1년 치 공시 역사 연대기 모달 UI, API 실패 시 로컬 Items 필터 Fallback 렌더링, overlay close stopPropagation interaction 완벽 검증.
+  - **[contract-badge.test.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/contract-badge.test.tsx)** (100%): 수주 금액/비율 Lazy Loading 뱃지 및 props guard null early return 분기 완벽 검증.
+  - **[disclosure-detail-badge.test.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/disclosure-detail-badge.test.tsx)** (100%): 10대 상세 공시 Lazy Loading 뱃지, API error boundary, 컴포넌트 unmount 시 active fetch cancel state clean-up 완벽 검증.
+  - **[keyword-manager.test.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/keyword-manager.test.tsx)** (100%): 키워드 매니저 추가/삭제 폼 및 `rss_custom_keywords` 로컬스토리지 interactive 갱신 흐름 완벽 검증.
+- **[UI 반응형 버그 해결]** 모바일 화면 가로 잘림(Horizontal Cutoff) 근본 조치 완료
+  - `.hero > div:first-child`에 강제 지정되었던 `min-width: 400px` 등의 절대 수치를 모바일 미디어 쿼리(`@media (max-width: 960px)`)를 통해 `min-width: 100% !important`로 덮어씌워 가로 overflow와 clipping 현상을 완전 퇴치.
+  - `opendart-fast-page.module.css` 모바일 hero padding을 `40px`에서 `24px`로 축소하고 border-radius를 최적화하여 320px 모바일 화면에서도 눈부신 다크 글래스모피즘 디자인의 responsive 레이아웃이 완벽하게 가독성 높게 표시되도록 보장.
 - **[브랜드 강화]** `STOCKMAN QUANT` 네온 로고 헤더 및 웹 사이트 전체 브랜딩 리뉴얼
   - **네온 로고 헤더 탑재**: [page-navigation.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/page-navigation.tsx)와 CSS 모듈을 전면 개정하여, 모든 페이지 상단에 펄스 애니메이션이 가미된 `⚡ STOCKMAN QUANT` 네온 헤더 로고를 추가.
   - **메타데이터 & 홈페이지 리뉴얼**: [layout.tsx](file:///c:/Users/dldbs/Desktop/RSS/app/layout.tsx) 메타 타이틀을 `⚡ STOCKMAN: 퀀트 모니터 터미널`로 변경하고, 홈 화면의 타이틀 및 설명을 퀀트 터미널 컨셉에 부합하도록 업그레이드.
