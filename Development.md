@@ -6,6 +6,9 @@
 - 최신 항목이 위로 오도록 기록한다.
 
 ## 2026-05-17
+- **[기능 고도화]** OPEN DART 수급 2차 검증(Secondary Validation) 시스템 결합
+  - KIS API 스캐너(거래대금 폭발, 실시간 순매수) 데이터를 OPEN DART 실시간 공시 화면(`opendart-fast-page.tsx`)과 병렬(Promise.all) 폴링으로 가져오도록 통합.
+  - 새로 뜬 공시의 종목이 KIS 수급 상위 리스트와 일치할 경우, 회사명 하단에 `🔥 거래대금 폭발`, `📈 수급 포착` 네온 뱃지가 자동으로 렌더링되도록 시각적 교차 검증 구현.
 - **[신규 기능 구현]** 나만의 맞춤 키워드 스캐너 (Custom Keyword Scanner) 도입
   - `lib/keywords.ts`: `localStorage` 기반의 유저 커스텀 키워드 관리 모듈 생성.
   - `components/keyword-manager.tsx`: 키워드 추가/삭제가 가능한 네온 글래스모피즘 테마의 UI 컴포넌트 추가.

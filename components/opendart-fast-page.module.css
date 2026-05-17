@@ -242,6 +242,44 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.corpInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.corpName {
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.volBadge,
+.netBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 8px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.volBadge {
+  background: rgba(255, 77, 77, 0.15);
+  color: #ff4d4d;
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.2);
+}
+
+.netBadge {
+  background: rgba(0, 212, 255, 0.15);
+  color: #00d4ff;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+
 .error,
 .empty {
   margin: 0;
