@@ -6,6 +6,9 @@
 - 최신 항목이 위로 오도록 기록한다.
 
 ## 2026-05-17
+- **[오류 수정]** 아이폰 12 Pro(390px) 좁은 모바일 뷰포트에서 실시간 수급 스캐너 텍스트 줄바꿈 및 가로 잘림 현상 근본 차단
+  - **모바일 2행 그리드 배치 구조 도입**: `외인 +x억 | 기관 -y억`과 같이 매우 길게 들어오는 수급 텍스트가 iPhone 12 Pro(390px) 및 iPhone SE(320px) 등 초소형 모바일 화면에서 한 행에 무리하게 표시되어 가로 overflow를 일으키던 문제를 해결하기 위해, 모바일 미디어 쿼리(`max-width: 480px`) 내에서 `.row`를 2행 그리드 구조(`grid-template-rows: auto auto`)로 전격 개정.
+  - **수급 텍스트 하단행 자동 배치**: 1행에는 순위, 회사명, 가격을 조화롭게 배치하고, 길이가 긴 수급 텍스트(`.metricCol`)는 2행 전체(`grid-column: 2 / -1`)를 차지하게 하여, 텍스트 크기와 상관없이 우측이 단 1픽셀도 잘리지 않고 화면 전체에 꽉 들어맞는 완벽한 모바일 전용 UI 아키텍처를 실현 ([program-trading.module.css](file:///c:/Users/dldbs/Desktop/RSS/components/program-trading.module.css)).
 - **[오류 수정]** KIS API 미작동 및 속성 누락으로 인한 클라이언트 startsWith 런타임 크래시 완전 퇴치
   - **안전한 옵셔널 체이닝 적용**: KIS API 연동 환경에서 특정 필드(`changeRate`, `programNetBuy`)가 `undefined` 혹은 예상치 못한 형식으로 반환될 경우에도 UI가 터지지 않고 완벽하게 자가 복구(Self-Healing)될 수 있도록 `?.startsWith` 옵셔널 체이닝 및 폴백 연산자를 모든 수급 스캐너 컴포넌트([program-trading.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/program-trading.tsx), [trading-intensity.tsx](file:///c:/Users/dldbs/Desktop/RSS/components/trading-intensity.tsx) 및 `components/scanners/*` 5종)에 전면 적용.
 - **[UI/UX 개선]** 홈 및 DART 공시 페이지의 메이저 수급 스캐너 모바일 레이아웃 잘림 현상 해결
