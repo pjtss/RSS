@@ -21,13 +21,20 @@ function formatSeoulTime(value: string): string {
 
 function buildNotificationBody(alert: AlertItem): string {
   const seoulTime = formatSeoulTime(alert.publishedAt);
+  const keyword = alert.keywords?.[0];
 
   if (alert.source === "DART") {
-    const keyword = alert.keywords?.[0];
-    return [alert.title, keyword ? `키워드: ${keyword}` : null, seoulTime].filter(Boolean).join(" | ");
+    return [
+      `📂 유형: ${alert.title}`,
+      keyword ? `🔑 키워드: ${keyword}` : null,
+      `⏱️ 시각: ${seoulTime}`
+    ].filter(Boolean).join("\n");
   }
 
-  return [alert.title, seoulTime].filter(Boolean).join(" | ");
+  return [
+    `📂 서식: ${alert.title}`,
+    `⏱️ 시각: ${seoulTime}`
+  ].join("\n");
 }
 
 function configureWebPush() {
@@ -231,11 +238,30 @@ export async function sendPushAlerts(alerts: AlertItem[]) {
   }
 
   for (const alert of alerts) {
+    const isSuperBullish = alert.level === "최강호재";
+    const isBullish = alert.level === "호재";
+
+    const emoji = isSuperBullish ? "🚨" : isBullish ? "⚡" : "✨";
+    const title = `${emoji} [${alert.level}] ${alert.company}`;
+
+    const actions = [
+      {
+        action: "open_origin",
+        title: alert.source === "DART" ? "🔍 공시 원문 보기" : "🔍 EDGAR 조회",
+      },
+      {
+        action: "open_terminal",
+        title: "📊 실시간 대시보드",
+      }
+    ];
+
     const payload = JSON.stringify({
-      title: `[${alert.level}] ${alert.company}`,
+      title,
       body: buildNotificationBody(alert),
       url: alert.link,
-      tag: `${alert.source}:${alert.externalId}`,
+      tag: `${alert.source}:${alert.company.replace(/\s+/g, "")}`,
+      actions,
+      priority: isSuperBullish ? "high" : "normal",
     });
 
     for (const subscription of subscriptions) {

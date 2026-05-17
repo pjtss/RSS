@@ -7,11 +7,11 @@ export default function HomePage() {
     <main className={styles.page}>
       <PageNavigation current="home" />
       <section className={styles.hero}>
-        <p className={styles.kicker}>RSS MONITOR</p>
-        <h1>DART와 SEC를 분리한 공시 대시보드</h1>
+        <p className={styles.kicker}>⚡ STOCKMAN QUANT</p>
+        <h1>STOCKMAN 퀀트 모니터 터미널</h1>
         <p className={styles.description}>
-          시장과 목적에 맞는 화면을 선택하면 최신 RSS 기반 공시를 빠르게 확인할 수 있습니다. 국내 주식의 강한 호재는
-          OPEN DART 빠른 공시 화면에서 실시간으로 정확하게 추적할 수 있습니다.
+          DART와 SEC 공시를 실시간으로 모니터링하고 KIS 수급 데이터와 교차 검증하는 최첨단 퀀트 대시보드입니다.
+          실시간 주도주와 강한 호재를 Stockman 알고리즘으로 즉시 감지하세요.
         </p>
         <div className={styles.actions}>
           <Link href="/dart" className={styles.primary}>

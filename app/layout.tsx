@@ -3,8 +3,8 @@ import { PushProvider } from "@/components/push-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RSS Monitor",
-  description: "DART와 SEC RSS를 실시간에 가깝게 모니터링하는 대시보드",
+  title: "⚡ STOCKMAN: 퀀트 모니터 터미널",
+  description: "DART와 SEC 공시를 실시간으로 추출하여 수급과 교차 검증하는 프리미엄 STOCKMAN 퀀트 모니터 터미널",
   manifest: "/manifest.webmanifest",
 };
 
