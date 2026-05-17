@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import styles from "./page-navigation.module.css";
+import { ThemeToggle } from "./theme-toggle";
 
 type PageKey = "home" | "dart" | "dart-opendart-fast" | "sec" | "scanners";
 
@@ -32,6 +35,7 @@ export function PageNavigation({ current }: { current: PageKey }) {
           📊 마켓 스캐너
         </Link>
       </nav>
+      <ThemeToggle />
     </header>
   );
 }

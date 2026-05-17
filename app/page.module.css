@@ -9,11 +9,11 @@
 .hero {
   width: 100%;
   padding: 56px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--card);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
   border-radius: 32px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -34,7 +34,7 @@
   margin: 0;
   font-size: clamp(36px, 7vw, 64px);
   line-height: 1.1;
-  color: #ffffff;
+  color: var(--text-hero);
   font-weight: 900;
   letter-spacing: -0.02em;
 }
@@ -42,7 +42,7 @@
 .description {
   margin: 24px 0 0;
   max-width: 700px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
   font-size: 18px;
   line-height: 1.7;
 }

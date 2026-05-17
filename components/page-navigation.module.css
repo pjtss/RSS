@@ -25,8 +25,8 @@
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.05em;
-  color: #ffffff;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 20px rgba(0, 212, 255, 0.3);
+  color: var(--foreground);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 20px rgba(0, 212, 255, 0.2);
 }
 
 .brandSubtitle {
@@ -47,12 +47,12 @@
   align-items: center;
   gap: 8px;
   padding: 6px;
-  background: rgba(30, 41, 59, 0.4);
+  background: var(--nav-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--nav-border);
   border-radius: 999px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), 0 0 15px rgba(0, 212, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 212, 255, 0.05);
   width: max-content;
   max-width: 100%;
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -75,12 +75,12 @@
 }
 
 .navLink {
-  color: #94a3b8;
+  color: var(--nav-link);
 }
 
 .navLink:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--nav-link-hover);
+  background: var(--nav-link-hover-bg);
   transform: translateY(-1px);
 }
 

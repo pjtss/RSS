@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { PushProvider } from "@/components/push-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,6 +15,19 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+// Anti-FOUC: set theme before first paint
+const themeScript = `
+  (function() {
+    try {
+      var stored = localStorage.getItem('stockman-theme');
+      var preferred = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', stored || preferred);
+    } catch(e) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  })();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -21,9 +35,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
-        <PushProvider>{children}</PushProvider>
+        <ThemeProvider>
+          <PushProvider>{children}</PushProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
+
