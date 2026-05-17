@@ -1,7 +1,7 @@
 import Link from "next/link";
 import styles from "./page-navigation.module.css";
 
-type PageKey = "home" | "dart" | "dart-rapid" | "dart-opendart-fast" | "sec" | "scanners";
+type PageKey = "home" | "dart" | "dart-opendart-fast" | "sec" | "scanners";
 
 export function PageNavigation({ current }: { current: PageKey }) {
   return (
@@ -11,9 +11,6 @@ export function PageNavigation({ current }: { current: PageKey }) {
       </Link>
       <Link className={current === "dart" ? styles.navActive : styles.navLink} href="/dart">
         DART
-      </Link>
-      <Link className={current === "dart-rapid" ? styles.navActive : styles.navLink} href="/dart/rapid">
-        급속 호재
       </Link>
       <Link
         className={current === "dart-opendart-fast" ? styles.navActive : styles.navLink}

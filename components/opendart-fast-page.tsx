@@ -103,9 +103,6 @@ export function OpenDartFastPage() {
           </p>
         </div>
         <div className={styles.links}>
-          <Link href="/dart/rapid" className={styles.secondary}>
-            RSS 급속 화면
-          </Link>
           <Link href="/dart" className={styles.secondary}>
             일반 DART
           </Link>
