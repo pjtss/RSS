@@ -1,7 +1,7 @@
 import Link from "next/link";
 import styles from "./page-navigation.module.css";
 
-type PageKey = "home" | "dart" | "dart-rapid" | "dart-opendart-fast" | "sec";
+type PageKey = "home" | "dart" | "dart-rapid" | "dart-opendart-fast" | "sec" | "scanners";
 
 export function PageNavigation({ current }: { current: PageKey }) {
   return (
@@ -23,6 +23,9 @@ export function PageNavigation({ current }: { current: PageKey }) {
       </Link>
       <Link className={current === "sec" ? styles.navActive : styles.navLink} href="/sec">
         SEC
+      </Link>
+      <Link className={current === "scanners" ? styles.navActive : styles.navLink} href="/scanners">
+        마켓 스캐너
       </Link>
     </nav>
   );

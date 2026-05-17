@@ -6,6 +6,12 @@
 - 최신 항목이 위로 오도록 기록한다.
 
 ## 2026-05-17
+- **[신규 기능 구현]** 한국투자증권(KIS) API 기반 5종 마켓 스캐너 100% 서버리스 구현
+  - `lib/kis.ts`: 거래대금 폭발, 외인/기관 순매수, 프로그램 매매, 장중 신고가, 호가 잔량 비율(VR) 조회를 위한 5개 신규 함수 및 Mock 데이터 추가.
+  - `app/api/stock/*`: 각 스캐너 데이터를 제공하는 5개의 신규 서버리스 API 라우트 구축.
+  - `components/scanners/*`: 기존 체결강도 디자인(Dark Glassmorphism)을 재사용한 5종 스캐너 UI 컴포넌트 개발 (`scanner.module.css` 공통 모듈화).
+  - `app/scanners/page.tsx`: 6종 스캐너를 종합적으로 모니터링할 수 있는 '마켓 스캐너' 전용 대시보드 페이지 신설.
+  - 별도의 DB 없이 실시간 Stateless 방식으로 아키텍처 구현 완료.
 - **[UI/UX 개선 완료]** 다크 모드 글래스모피즘(Dark Glassmorphism) 디자인 시스템 전면 적용
   - `rapid-dart-page.tsx`, `trading-intensity.tsx`의 프리미엄 다크 모드 디자인을 타 컴포넌트에 통일.
   - `page.module.css`: 홈 화면의 `.hero` 및 액션 버튼을 어두운 유리 질감과 네온 글로우 테마로 변경.
