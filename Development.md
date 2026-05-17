@@ -8,6 +8,8 @@
 ## 2026-05-17
 - **[UI/UX 개선 완료]** 다크 모드 글래스모피즘(Dark Glassmorphism) 디자인 시스템 전면 적용
   - `rapid-dart-page.tsx`, `trading-intensity.tsx`의 프리미엄 다크 모드 디자인을 타 컴포넌트에 통일.
+  - `page.module.css`: 홈 화면의 `.hero` 및 액션 버튼을 어두운 유리 질감과 네온 글로우 테마로 변경.
+  - `opendart-fast-page.module.css`: OPEN DART 빠른 공시 화면의 패널, 뱃지, 테이블을 다크 글래스모피즘 테마로 일괄 변환.
   - `feed-page.module.css`: 메인 피드 목록 및 컨트롤바 배경을 다크 글래스모피즘(`rgba(255,255,255,0.03)` 및 `blur`)으로 변경하고 네온 텍스트 적용.
   - `market-sentiment.module.css`: 시장 감성 지수 게이지와 백그라운드를 다크 테마 및 네온 글로우 효과로 업그레이드.
   - `sector-map.module.css`: 섹터 히트맵 그리드 타일 디자인에 호버 애니메이션, 네온 바, 어두운 배경 적용.
