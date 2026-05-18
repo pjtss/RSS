@@ -9,33 +9,48 @@ interface Props {
 }
 
 export function ContractBadge({ rceptNo }: Props) {
-  const [data, setData] = useState<ContractDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [state, setState] = useState<{
+    data: ContractDetails | null;
+    loading: boolean;
+    error: boolean;
+  }>({
+    data: null,
+    loading: true,
+    error: false
+  });
 
   useEffect(() => {
     if (!rceptNo) {
-      setLoading(false);
+      setState(prev => ({ ...prev, loading: false }));
       return;
     }
+
+    let cancelled = false;
 
     async function load() {
       try {
         const res = await fetch(`/api/dart/contract?rceptNo=${rceptNo}`);
         if (!res.ok) throw new Error("Failed");
         const json = await res.json();
-        setData(json);
+        
+        if (!cancelled) {
+          setState({ data: json, loading: false, error: false });
+        }
       } catch (err) {
-        setError(true);
-      } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setState({ data: null, loading: false, error: true });
+        }
       }
     }
 
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [rceptNo]);
 
-  if (loading) {
+  if (state.loading) {
     return (
       <div className={styles.loading}>
         <div className={styles.spinner}></div>
@@ -44,7 +59,7 @@ export function ContractBadge({ rceptNo }: Props) {
     );
   }
 
-  if (error || !data) {
+  if (state.error || !state.data) {
     // If it fails or not found, just don't show the badge to avoid clutter
     return null;
   }
@@ -53,12 +68,12 @@ export function ContractBadge({ rceptNo }: Props) {
     <div className={styles.container}>
       <div className={styles.header}>
         <span className={styles.icon}>💰</span>
-        <strong>{data.contractAmount}</strong>
-        <span className={styles.ratio}>(매출대비 {data.salesRatio}%)</span>
+        <strong>{state.data.contractAmount}</strong>
+        <span className={styles.ratio}>(매출대비 {state.data.salesRatio}%)</span>
       </div>
       <div className={styles.details}>
-        <span><strong>상대방:</strong> {data.partner}</span>
-        <span><strong>기간:</strong> {data.period}</span>
+        <span><strong>상대방:</strong> {state.data.partner}</span>
+        <span><strong>기간:</strong> {state.data.period}</span>
       </div>
     </div>
   );
