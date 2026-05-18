@@ -3,6 +3,10 @@
 ## Improvement Log
 
 ### 2026-05-18
+- **미국 주식 전용 6대 마켓 종합 스캐너 모듈 및 GNB 완벽 독립 분리 실장**:
+  - **실수**: 미국 시장(NYSE/NASDAQ/AMEX)은 기관/외인의 개념이 다르고 SEC Form 4 내부자 거래나 옵션 플로우 등 고유의 핵심 퀀트 지표가 필요함에도 불구하고, 국내 주식용 6대 스캐너의 데이터 분류 및 지표 구조에 의존하여 해외 확장 확장성을 고려하지 못함.
+  - **원인**: 국내 주식 시장에 집중하여 global market을 다차원적으로 독립 지원할 수 있는 확장 모듈 아키텍처 설계를 미뤄둠.
+  - **해결 및 재발 방지**: 국내 주식을 100% 완전 보존한 채로 미국 주식 전용 6대 종합 스캐너 시스템을 추가 개발함. KIS 해외주식 시세 API (`HHDFS76201300`)를 기반으로 상대 거래량(RVOL), Form 4 내부자 순매수액, Call Option Flow 계약수, 나스닥 Bid-Ask Vol Ratio 등 미국형 정밀 퀀트 지표를 탑재한 백엔드 모듈([`lib/kis-us.ts`](file:///c:/Users/dldbs/Desktop/RSS/lib/kis-us.ts)), 6종 API 엔드포인트 및 UI 컴포넌트 스펙을 개설함. [`components/page-navigation.tsx`](file:///c:/Users/dldbs/Desktop/RSS/components/page-navigation.tsx) 헤더 네비게이션에 `국내 스캐너`와 `미국 스캐너` 메뉴를 아름답게 분리 배치하여, 129개 테스트 그린패스 수렴 및 완벽한 무장애 퀀트 확장 체계를 완성함.
 - **OpenDART 계약 상세 API 404 (Not Found) 브라우저 콘솔 네트워크 오류 퇴치**:
   - **실수**: 특정 공시 영수증 번호(`rceptNo`)에 대해 OpenDART API에 실제 단일판매ㆍ공급계약체결 데이터가 없거나, 테스트용 모의 영수증 번호가 인입되었을 때 `/api/dart/contract` 라우트에서 `404 Not Found` HTTP 상태 코드를 직접 반환하여 클라이언트 브라우저 콘솔창에 빨간색 404 네트워크 에러 스패밍이 발생함.
   - **원인**: 데이터 미존재 상황을 비정상적인 HTTP 리소스 누락(404)으로 간주하여 단순 에러 리스폰스를 돌려준 API 설계의 불합리성 때문임.

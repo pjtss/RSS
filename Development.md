@@ -6,6 +6,12 @@
 - 최신 항목이 위로 오도록 기록한다.
 
 ## 2026-05-18
+- **[신규 기능 구현]** 🇺🇸 미국 주식 전용 6대 마켓 종합 스캐너 모듈 및 페이지 추가 구현 (국내 기능 완전 보존)
+  - **백엔드 라이브러리 신설** ([`lib/kis-us.ts`](file:///c:/Users/dldbs/Desktop/RSS/lib/kis-us.ts)): 한국투자증권 해외주식 거래량/거래대금 순위 API (`HHDFS76201300`) 연동 모듈 구현. 국내와 마찬가지로 `us_` 접두사로 Supabase DB 캐싱(`kis_cache`) 및 자격증명 부재 시 자동 복원 지원. 미국 주식 시장 특성(SEC Form 4 내부자 매동, 대형 블록딜, 콜옵션 스마트 머니 플로우, 52주 신고가 돌파, 나스닥 VR 잔량 비율)을 반영한 고품질 퀀트 공식 산출.
+  - **API 엔드포인트 6종 구축**: `/api/stock/us/intensity`, `/api/stock/us/volume-spike`, `/api/stock/us/net-buying`, `/api/stock/us/program-trading`, `/api/stock/us/new-high`, `/api/stock/us/bid-ask-ratio` 라우트 각각 구현 완료.
+  - **UI 컴포넌트 & 페이지 연동**: `components/scanners/us/` 하위에 미국 주식 6대 스캐너 렌더링 카드 6종 제작. `/scanners/us` 전용 서브 페이지 개설 및 전면 연동 완료.
+  - **GNB 네비게이션 개편**: [`components/page-navigation.tsx`](file:///c:/Users/dldbs/Desktop/RSS/components/page-navigation.tsx) 헤더 메뉴를 개편하여 기존 `마켓 스캐너` 메뉴를 `국내 스캐너`와 `미국 스캐너` 2대 메뉴로 완벽 분리 배치 (모바일 스와이프 UI 완벽 대응).
+  - **단위 테스트 수렴 및 빌드**: [`lib/kis-us.test.ts`](file:///c:/Users/dldbs/Desktop/RSS/lib/kis-us.test.ts) 신설 및 네비게이션 테스트 갱신을 통해 **129개 전체 테스트 Green Pass 및 프로덕션 빌드 100% Clean Compile 확인**.
 - **[기능 개선]** 로컬/개발기 KIS 자격증명 부재 하에서도 원격 Supabase DB 캐시 자동 연동 고도화
   - **자격증명 누락 시 DB 복원 연동**: 로컬 개발 환경(`.env.local`)에 `KIS_APPKEY`가 정의되어 있지 않더라도, `DATABASE_URL`이 매핑되어 있는 상태라면 Supabase DB의 `kis_cache` 테이블에서 실서버가 크론/정규장에 기록해둔 최신 실거래 종가 데이터를 가져오도록 복원 파이프라인 업그레이드.
   - **결과**: 로컬 개발 및 Vercel 프리뷰 등 KIS API 비밀키가 누락된 환경에서도 실데이터 기반 6대 마켓 스캐너 퀀트 터미널 화면이 단 1초도 비어 보이지 않고, 100% 프리미엄 실시간 거래 종가 데이터로 풍부하게 렌더링되도록 완성도 보강.

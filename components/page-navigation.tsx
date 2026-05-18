@@ -4,7 +4,7 @@ import Link from "next/link";
 import styles from "./page-navigation.module.css";
 import { ThemeToggle } from "./theme-toggle";
 
-type PageKey = "home" | "dart" | "dart-opendart-fast" | "sec" | "scanners" | "watchlist" | "notifications";
+type PageKey = "home" | "dart" | "dart-opendart-fast" | "sec" | "scanners" | "watchlist" | "notifications" | "scanners-us";
 
 export function PageNavigation({ current }: { current: PageKey }) {
   return (
@@ -32,7 +32,10 @@ export function PageNavigation({ current }: { current: PageKey }) {
           🇺🇸 SEC
         </Link>
         <Link className={current === "scanners" ? styles.navActive : styles.navLink} href="/scanners" prefetch={false}>
-          📊 마켓 스캐너
+          📊 국내 스캐너
+        </Link>
+        <Link className={current === "scanners-us" ? styles.navActive : styles.navLink} href="/scanners/us" prefetch={false}>
+          🇺🇸 미국 스캐너
         </Link>
         <Link className={current === "watchlist" ? styles.navActive : styles.navLink} href="/watchlist" prefetch={false}>
           ⭐ 관심 종목

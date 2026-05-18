@@ -23,7 +23,8 @@ describe('PageNavigation Component', () => {
     expect(screen.getByText('📋 일반 DART')).toBeDefined();
     expect(screen.getByText('⚡ 실시간 DART')).toBeDefined();
     expect(screen.getByText('🇺🇸 SEC')).toBeDefined();
-    expect(screen.getByText('📊 마켓 스캐너')).toBeDefined();
+    expect(screen.getByText('📊 국내 스캐너')).toBeDefined();
+    expect(screen.getByText('🇺🇸 미국 스캐너')).toBeDefined();
   });
 
   it('highlights the active link', () => {
