@@ -238,8 +238,15 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
     });
   }
 
-  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 빈 배열 반환
+  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "trading_intensity")).limit(1);
+        if (cacheRecord.length > 0) return cacheRecord[0].data as StockIntensity[];
+      }
+    } catch {}
     return [];
   }
 
@@ -331,8 +338,15 @@ export async function fetchVolumeSpike(): Promise<VolumeSpikeItem[]> {
     }));
   }
 
-  // B. 실 운영 환경에서 API 키 누락 시 -> 빈 배열 반환
+  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "volume_spike")).limit(1);
+        if (cacheRecord.length > 0) return cacheRecord[0].data as VolumeSpikeItem[];
+      }
+    } catch {}
     return [];
   }
 
@@ -423,8 +437,15 @@ export async function fetchNetBuying(): Promise<NetBuyingItem[]> {
     }));
   }
 
-  // B. 실 운영 환경에서 API 키 누락 시 -> 빈 배열 반환
+  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "net_buying")).limit(1);
+        if (cacheRecord.length > 0) return cacheRecord[0].data as NetBuyingItem[];
+      }
+    } catch {}
     return [];
   }
 
@@ -512,8 +533,15 @@ export async function fetchProgramTrading(): Promise<ProgramTradingItem[]> {
     }));
   }
 
-  // B. 실 운영 환경에서 API 키 누락 시 -> 빈 배열 반환
+  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "program_trading")).limit(1);
+        if (cacheRecord.length > 0) return cacheRecord[0].data as ProgramTradingItem[];
+      }
+    } catch {}
     return [];
   }
 
@@ -600,8 +628,15 @@ export async function fetchNewHigh(): Promise<NewHighItem[]> {
     }));
   }
 
-  // B. 실 운영 환경에서 API 키 누락 시 -> 빈 배열 반환
+  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "new_high")).limit(1);
+        if (cacheRecord.length > 0) return cacheRecord[0].data as NewHighItem[];
+      }
+    } catch {}
     return [];
   }
 
@@ -688,8 +723,15 @@ export async function fetchBidAskRatio(): Promise<BidAskRatioItem[]> {
     }));
   }
 
-  // B. 실 운영 환경에서 API 키 누락 시 -> 빈 배열 반환
+  // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "bid_ask_ratio")).limit(1);
+        if (cacheRecord.length > 0) return cacheRecord[0].data as BidAskRatioItem[];
+      }
+    } catch {}
     return [];
   }
 
