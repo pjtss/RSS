@@ -107,18 +107,18 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
 
   const resData = await response.json();
   if (resData.rt_cd !== "0") {
-    throw new Error(`KIS Overseas API Error: ${resData.msg1}`);
+    throw new Error(`KIS Overseas API Error [${resData.rt_cd}]: ${resData.msg1}`);
   }
 
-  // 해외 거래량 API output mapping
+  // 해외 거래량 API output mapping (공식 KIS 해외주식 거래대금순위 필드명 동기화)
   return (resData.output || []).map((item: any) => ({
     symb: item.symb || "",
-    name: item.name || "",
-    last: item.last || "0",
-    rate: item.rate || "0",
-    diff: item.diff || "0",
-    vol: item.vol || "0",
-    amount: item.amount || "0",
+    name: item.hts_kor_isnm || "",
+    last: item.stck_prpr || "0",
+    rate: item.prdy_ctrt || "0",
+    diff: item.prdy_vrss || "0",
+    vol: item.acml_vol || "0",
+    amount: item.acml_tr_pbmn || "0",
   }));
 }
 
@@ -201,6 +201,7 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
       }
     }
   } catch (err) {
+    (globalThis as any).lastKisUsError = err;
     console.warn("[KIS-US] fetchUsTradingIntensity live fetch failed, reading DB cache:", err);
   }
 
@@ -212,6 +213,12 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
       if (cacheRecord.length > 0) return cacheRecord[0].data as StockIntensity[];
     }
   } catch {}
+
+  if ((globalThis as any).lastKisUsError) {
+    const err = (globalThis as any).lastKisUsError;
+    (globalThis as any).lastKisUsError = null; // Clear error to avoid side effects
+    throw err;
+  }
 
   return [];
 }
