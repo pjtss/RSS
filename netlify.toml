@@ -1,3 +1,14 @@
 [functions]
 directory = "netlify/functions"
 node_bundler = "esbuild"
+
+# 공시 DB 자동 적재 — 1분 간격 Cron
+# Next.js API Route(/api/cron/sync-filings)를 주기적으로 호출
+# CRON_SECRET 환경변수를 설정하면 인증이 자동 적용됩니다
+[[plugins]]
+  package = "@netlify/plugin-cron"
+
+  [plugins.inputs]
+  schedule = "* * * * *"
+  path = "/api/cron/sync-filings"
+

@@ -69,13 +69,13 @@ describe('KIS API Module', () => {
       expect(data[0].bidAskRatio).toBe(250);
     });
   });
-
   describe('When credentials are set', () => {
-    it('handles successful access token lookup and returns empty results', async () => {
+    it('handles successful access token lookup and returns full data', async () => {
       process.env.KIS_APPKEY = 'test-key';
       process.env.KIS_APPSECRET = 'test-secret';
       
-      const { fetchTradingIntensity } = await import('./kis');
+      const { fetchTradingIntensity, clearTokenCache } = await import('./kis');
+      clearTokenCache(); // 캐시 초기화하여 반드시 fetch가 불리도록 유도
 
       vi.mocked(fetch).mockResolvedValue({
         ok: true,
@@ -83,7 +83,8 @@ describe('KIS API Module', () => {
       } as any);
 
       const intensity = await fetchTradingIntensity();
-      expect(intensity).toEqual([]);
+      expect(intensity).toHaveLength(10);
+      expect(intensity[0].company).toBe('가짜 종목 A');
     });
 
     it('handles access token fetch failure and falls back to mock', async () => {

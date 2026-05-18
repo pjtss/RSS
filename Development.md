@@ -5,7 +5,17 @@
 - 기능 추가, 구조 변경, 배포 영향 사항, 환경변수 변경 사항을 남긴다.
 - 최신 항목이 위로 오도록 기록한다.
 
-## 2026-05-17
+## 2026-05-18
+- **[신규 기능 구현]** 5대 핵심 기능 동시 완성 (`npm run build` Clean Compile 확인)
+  - **종목별 맞춤 알림 구독** (`lib/stock-alerts.ts`, `components/stock-alert-manager.tsx`): `keywords.ts` 구조를 재활용하여 localStorage 기반 종목 구독 CRUD 구현. `superOnly` 필터(최강호재만 수신) 토글 기능 포함. `isAlertMatchingStockConfig`로 클라이언트 측 필터링 함수 제공.
+  - **알림 이력 센터** (`lib/notification-history.ts`, `app/notifications/page.tsx`): localStorage 최대 200건 이력 보관. 전체/미읽음/DART/SEC 필터, 개별·전체 삭제, 미읽음 점(Pulse 애니메이션) 표시. GNB에 🔔 알림 센터 메뉴 추가.
+  - **호재 스코어 랭킹 보드** (`app/api/dart/ranking/route.ts`, `components/score-ranking.tsx`): 기존 `scoring.ts`의 `calculateDartScore`를 재활용. DART 피드 실시간 조회 → 점수 내림차순 상위 20건 반환 API. UI는 메달 이모지·점수·뱃지·60초 자동 폴링·스켈레톤 로딩 포함.
+  - **관심 종목 전용 대시보드** (`app/watchlist/page.tsx`): 기존 `watchlist.ts` + `/api/dart/ranking` API 재활용. 2단 레이아웃(사이드바+피드). 오늘 공시가 있는 종목에 초록 점 Pulse 표시. CompanyTimeline 모달 연동으로 1년 이력 조회 가능. GNB에 ⭐ 관심 종목 메뉴 추가.
+  - **공시 DB 적재 자동화 Cron** (`app/api/cron/sync-filings/route.ts`, `netlify.toml`): DART+SEC를 `Promise.allSettled`로 동시 fetch → Supabase DB upsert(ON CONFLICT DO NOTHING). `CRON_SECRET` 환경변수 인증. `netlify.toml`에 `@netlify/plugin-cron`으로 1분 간격 자동 호출 등록.
+- **[환경변수 추가]** `CRON_SECRET` — Cron API 인증 시크릿 (선택사항, 미설정 시 인증 생략)
+- **[라우팅 추가]** `/notifications`, `/watchlist`, `/api/dart/ranking`, `/api/cron/sync-filings`
+
+
 - **[기능 개선]** 모바일 웹 푸시 알림 테스트 발송 기능의 테스트 데이터를 실제 프리미엄 호재 공시 형식과 100% 동기화
   - **프리미엄 호재 데이터 포맷 적용**: 테스트 발송 버튼 클릭 시 단순 디버그 텍스트(`테스트호재`, `PJT RSS`) 대신 실제 주식 시장에서 가장 파급력이 큰 실존 호재 공시와 완벽하게 동일한 구조의 리얼 데이터(`🚨 [최강호재] 현대에너지솔루션`, `단일판매ㆍ공급계약체결 (매출액 대비 85.4%)`, `🔑 키워드: 공급계약`)를 실장하여, 실제 사용 환경과 동일하게 푸시 제목, 유형 개행 정렬, 키워드 해시태그, 공시 원문 링크(`🔍 공시 원문 보기`) 및 실시간 대시보드 바로가기 Quick Action 버튼들이 모바일 기기 화면에 아름다운 카드 카루셀 형태로 표출되도록 고도화 단행 ([push.ts](file:///c:/Users/dldbs/Desktop/RSS/lib/push.ts)).
 - **[오류 수정]** 아이폰 12 Pro(390px) 좁은 뷰포트 GNB 스크롤 오동작 해결 및 홈 화면 히어로 카드 버튼 잘림 전면 차단

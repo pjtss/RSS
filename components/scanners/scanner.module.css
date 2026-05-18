@@ -1,19 +1,20 @@
 .container {
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--panel-bg);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--panel-border);
   border-radius: 20px;
   padding: 24px;
   display: flex;
   flex-direction: column;
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .title {
   font-size: 14px;
   font-weight: 900;
-  color: #f8fafc;
+  color: var(--text-hero);
   margin-bottom: 20px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -24,7 +25,7 @@
 
 .title span {
   font-size: 11px;
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -46,7 +47,7 @@
 .rank {
   font-size: 14px;
   font-weight: 900;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .info {
@@ -57,12 +58,12 @@
 .name {
   font-size: 13px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-hero);
 }
 
 .highlight {
   font-size: 11px;
-  color: var(--neon-green, #00ffa3);
+  color: var(--neon-green);
   font-weight: 800;
 }
 
@@ -74,7 +75,7 @@
 
 .price {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .up {
@@ -93,7 +94,7 @@
   grid-column: 1 / -1;
   width: 100%;
   height: 2px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--table-border-color);
   border-radius: 1px;
   overflow: hidden;
 }
@@ -114,7 +115,7 @@
 }
 
 .loading {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .error {

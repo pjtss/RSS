@@ -20,8 +20,17 @@ export default function HomePage() {
           <Link href="/dart/opendart-fast" className={styles.primaryAlt} prefetch={false}>
             OPEN DART 빠른 공시
           </Link>
+          <Link href="/scanners" className={styles.secondary} prefetch={false}>
+            📊 마켓 스캐너
+          </Link>
+          <Link href="/watchlist" className={styles.secondary} prefetch={false}>
+            ⭐ 관심 종목
+          </Link>
+          <Link href="/notifications" className={styles.secondary} prefetch={false}>
+            🔔 알림 센터
+          </Link>
           <Link href="/sec" className={styles.secondary} prefetch={false}>
-            SEC 페이지 보기
+            🇺🇸 SEC 페이지
           </Link>
         </div>
       </section>
