@@ -1,7 +1,7 @@
 import { getDb } from "./db";
 import { kisCache } from "./schema";
 import { eq } from "drizzle-orm";
-import { getAccessToken } from "./kis";
+import { getAccessToken, getKisMode } from "./kis";
 
 const KIS_APPKEY = process.env.KIS_APPKEY;
 const KIS_APPSECRET = process.env.KIS_APPSECRET;
@@ -88,8 +88,14 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
     CNT: "30",   // 조회 건수
   });
 
+  const mode = getKisMode();
+  const baseUrl = mode === "mock"
+    ? "https://openapivts.koreainvestment.com:29443"
+    : "https://openapi.koreainvestment.com:9443";
+  const trId = mode === "mock" ? "VHDFS76320010" : "HHDFS76320010";
+
   // 해외주식 거래대금/거래량 순위 OpenAPI
-  const url = `https://openapi.koreainvestment.com:9443/uapi/overseas-stock/v1/ranking/trade-pbmn?${params.toString()}`;
+  const url = `${baseUrl}/uapi/overseas-stock/v1/ranking/trade-pbmn?${params.toString()}`;
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -97,7 +103,7 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
       Authorization: `Bearer ${token}`,
       appkey: KIS_APPKEY || "",
       appsecret: KIS_APPSECRET || "",
-      tr_id: "HHDFS76320010",
+      tr_id: trId,
     },
   });
 

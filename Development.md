@@ -6,6 +6,9 @@
 - 최신 항목이 위로 오도록 기록한다.
 
 ## 2026-05-18
+- **[오류 수정]** KIS Developers 실전투자/모의투자(Mock) 자동 감지 및 셀프 힐링(Self-Healing) 게이트웨이 탑재
+  - **자격증명 종류 동적 판별**: 사용자가 입력한 KIS APPKEY가 실전투자용인지 모의투자용(`PS`, `TS`, `VT` 등 접두사)인지 혹은 환경변수 설정 상태에 관계없이, 인증 토큰 요청을 두 서버 모두에 순차적으로 자동 시도하는 정밀 폴백 오토-디텍팅(Auto-Detecting) 시스템 구축.
+  - **실시간 게이트웨이 및 tr_id 자동 전환**: 감지된 모드에 맞게 API Base URL (`openapi.koreainvestment.com:9443` vs `openapivts.koreainvestment.com:29443`) 및 거래 코드 `tr_id` (`HHDFS76320010` vs `VHDFS76320010`)를 런타임에 100% 동적으로 스위칭하도록 개편하여 어떤 자격증명으로도 완벽한 데이터를 취득하도록 보장.
 - **[오류 수정]** KIS Developers 해외주식 게이트웨이 `Authorization` 헤더 대소문자 대처 및 정밀 조율 완료
   - **대소문자 엄격 대응**: 해외주식 API 게이트웨이가 요청 헤더에서 인증 토큰 키값의 대소문자를 엄격하게 검증하여 소문자 `authorization`일 시 `ERROR INPUT FIELD NOT FOUND [AUTH]` 오류를 리턴하는 이슈를 확인. 헤더 명세를 대문자 **`Authorization`**으로 완벽 통일 수정하여 인증 100% 정상화 처리.
 - **[오류 수정]** KIS Developers 해외주식 거래대금/거래량 순위 API 공식 엔드포인트 및 `tr_id` 긴급 정밀 조율

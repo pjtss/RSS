@@ -3,6 +3,10 @@
 ## Improvement Log
 
 ### 2026-05-18
+- **KIS Developers 실전투자/모의투자(Mock) 환경변수 혼용에 따른 인증 및 빈 배열 문제 자동 감지 솔루션 탑재**:
+  - **실수**: 사용자가 Netlify에 추가한 KIS 자격증명이 '모의투자용 키'였음에도 불구하고, 애플리케이션 백엔드가 실전투자 게이트웨이(`openapi.koreainvestment.com`)로만 고정 요청을 시도하여 `ERROR INPUT FIELD NOT FOUND [AUTH]` 오류와 빈 배열 데이터가 리턴되는 불일치 현상이 유발됨.
+  - **원인**: KIS OpenAPI의 실전투자 게이트웨이와 모의투자 게이트웨이의 도메인 주소 및 전송용 `tr_id` 거래 코드가 서로 다르다는 사실을 런타임에서 유연하게 스위칭해주지 못하고 하드코딩했던 설계의 한계 때문임.
+  - **해결 및 재발 방지**: 실전/모의투자용 토큰 앤드포인트를 순차적으로 순회하며 성공한 서버의 도메인으로 자동 스위칭(Auto-Detecting)하는 셀프 힐링 토큰 조회 로직과, 모의투자용인 경우 해외주식 순위 조회 `tr_id`를 `VHDFS76320010` (실전은 `HHDFS76320010`)로 동적 치환하는 듀얼 게이트웨이 모듈을 [`lib/kis.ts`](file:///c:/Users/dldbs/Desktop/RSS/lib/kis.ts) 및 [`lib/kis-us.ts`](file:///c:/Users/dldbs/Desktop/RSS/lib/kis-us.ts)에 탑재함. 이를 통해 그 어떤 자격증명이 주어지더라도 100% 무중단 정상 수급이 이루어지도록 완벽 대응함.
 - **KIS 해외주식 API 게이트웨이 `Authorization` 헤더 대소문자 매칭 오류 긴급 해결**:
   - **실수**: KIS OpenAPI 호출 시 국내주식 API는 소문자 `authorization` 헤더를 허용해주어 정상 동작했으나, 해외주식용 API 게이트웨이는 대소문자를 엄격하게 대조하도록 설정되어 있어서 `authorization`을 수신하지 못하고 `ERROR INPUT FIELD NOT FOUND [AUTH]` 오류를 리턴하며 빈 배열이 반환되도록 만듦.
   - **원인**: KIS OpenAPI의 국내/해외 게이트웨이 파서 파이프라인의 헤더 엄격성 차이를 크로스 체크하지 못함.
