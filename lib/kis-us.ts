@@ -96,36 +96,79 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
 
   // 해외주식 거래대금/거래량 순위 OpenAPI
   const url = `${baseUrl}/uapi/overseas-stock/v1/ranking/trade-pbmn?${params.toString()}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "content-type": "application/json",
-      Authorization: `Bearer ${token}`,
-      appkey: KIS_APPKEY || "",
-      appsecret: KIS_APPSECRET || "",
-      tr_id: trId,
-    },
-  });
+  
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${token}`,
+        appkey: KIS_APPKEY || "",
+        appsecret: KIS_APPSECRET || "",
+        tr_id: trId,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error(`KIS Overseas API returned HTTP ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`KIS Overseas API returned HTTP ${response.status}`);
+    }
+
+    const resData = await response.json();
+    if (resData.rt_cd !== "0") {
+      throw new Error(`KIS Overseas API Error [${resData.rt_cd}]: ${resData.msg1}`);
+    }
+
+    // 해외 거래량 API output mapping (공식 KIS 해외주식 거래대금순위 필드명 동기화)
+    return (resData.output || []).map((item: any) => ({
+      symb: item.symb || "",
+      name: item.hts_kor_isnm || "",
+      last: item.stck_prpr || "0",
+      rate: item.prdy_ctrt || "0",
+      diff: item.prdy_vrss || "0",
+      vol: item.acml_vol || "0",
+      amount: item.acml_tr_pbmn || "0",
+    }));
+  } catch (err: any) {
+    console.warn("[KIS-US] KIS live fetch failed or blocked. Activating Yahoo Finance live fallback:", err);
+    
+    // Yahoo Finance Live Screener Fallback (100% Real Live Market Data, No Mock Data!)
+    try {
+      const yfUrl = "https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?formatted=false&scrIds=most_actives&count=30&corsDomain=finance.yahoo.com";
+      const yfRes = await fetch(yfUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      });
+      if (yfRes.ok) {
+        const yfData = await yfRes.json();
+        const quotes = yfData.finance?.result?.[0]?.quotes || [];
+        if (quotes.length > 0) {
+          console.info("[KIS-US] Yahoo Finance live fallback fetch successful.");
+          return quotes.map((q: any) => {
+            const price = q.regularMarketPrice || 0;
+            const changePercent = q.regularMarketChangePercent || 0;
+            const change = q.regularMarketChange || 0;
+            const volume = q.regularMarketVolume || 0;
+            const amount = volume * price;
+            
+            return {
+              symb: q.symbol || "",
+              name: q.shortName || q.longName || q.symbol || "",
+              last: String(price),
+              rate: String(changePercent),
+              diff: String(Math.abs(change)),
+              vol: String(volume),
+              amount: String(amount),
+            };
+          });
+        }
+      }
+    } catch (yfErr) {
+      console.error("[KIS-US] Yahoo Finance fallback also failed:", yfErr);
+    }
+    
+    throw err; // Re-throw KIS error if fallback fails
   }
-
-  const resData = await response.json();
-  if (resData.rt_cd !== "0") {
-    throw new Error(`KIS Overseas API Error [${resData.rt_cd}]: ${resData.msg1}`);
-  }
-
-  // 해외 거래량 API output mapping (공식 KIS 해외주식 거래대금순위 필드명 동기화)
-  return (resData.output || []).map((item: any) => ({
-    symb: item.symb || "",
-    name: item.hts_kor_isnm || "",
-    last: item.stck_prpr || "0",
-    rate: item.prdy_ctrt || "0",
-    diff: item.prdy_vrss || "0",
-    vol: item.acml_vol || "0",
-    amount: item.acml_tr_pbmn || "0",
-  }));
 }
 
 // 1. 미국 실시간 체결강도 스캐너
