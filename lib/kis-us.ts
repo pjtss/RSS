@@ -83,22 +83,13 @@ function getDynamicOffset(seed: number): number {
 // 해외 주식 시세 API 직접 조회 헬퍼
 async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
   const params = new URLSearchParams({
-    FID_COND_MRKT_DIV_CODE: "NAS", // NASDAQ 시장구분
-    FID_COND_SCR_DIV_CODE: "20171",
-    FID_INPUT_ISCD: "0000",
-    FID_DIV_CLS_CODE: "0",
-    FID_BLNG_CLS_CODE: "0",
-    FID_TRGT_CLS_CODE: "111111111",
-    FID_TRGT_EXLS_CLS_CODE: "000000000",
-    FID_VOL_CNT: "0",
-    FID_INPUT_CNT_1: "0",
-    FID_INPUT_CNT_2: "0",
-    FID_STOC_PRE_KYWD_CLS_CODE: "00",
-    FID_SUB_AND_DO_CLS_CODE: "N",
+    EXCD: "NAS", // NASDAQ 거래소 코드
+    CO_YN: "N",  // 관리종목 미포함
+    CNT: "30",   // 조회 건수
   });
 
-  // 해외주식 거래량 순위 OpenAPI
-  const url = `https://openapi.koreainvestment.com:9443/uapi/overseas-stock/v1/quotations/volume?${params.toString()}`;
+  // 해외주식 거래대금/거래량 순위 OpenAPI
+  const url = `https://openapi.koreainvestment.com:9443/uapi/overseas-stock/v1/ranking/trade-pbmn?${params.toString()}`;
   const response = await fetch(url, {
     method: "GET",
     headers: {
@@ -106,7 +97,7 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
       authorization: `Bearer ${token}`,
       appkey: KIS_APPKEY || "",
       appsecret: KIS_APPSECRET || "",
-      tr_id: "HHDFS76201300",
+      tr_id: "HHDFS76320010",
     },
   });
 
