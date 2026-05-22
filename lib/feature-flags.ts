@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 export const FEATURE_FLAGS = {
   dartRealtimeDisabled: false,
   secRealtimeDisabled: true,
-  domesticScannersDisabled: true,
-  usScannersDisabled: true,
+  domesticScannersDisabled: false,
+  usScannersDisabled: false,
 } as const;
 
 export function createDisabledApiResponse(featureName: string) {

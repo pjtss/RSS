@@ -1,12 +1,30 @@
-import { FeatureDisabled } from "@/components/feature-disabled";
+import { PageNavigation } from "@/components/page-navigation";
+import { UsTradingIntensity } from "@/components/scanners/us/trading-intensity";
+import { UsVolumeSpike } from "@/components/scanners/us/volume-spike";
+import { UsNetBuying } from "@/components/scanners/us/net-buying";
+import { UsProgramTrading } from "@/components/scanners/us/program-trading";
+import { UsNewHigh } from "@/components/scanners/us/new-high";
+import { UsBidAskRatio } from "@/components/scanners/us/bid-ask-ratio";
+import styles from "../page.module.css";
 
 export default function UsScannersPage() {
   return (
-    <FeatureDisabled
-      current="scanners-us"
-      category="미국 스캐너"
-      title="미국 스캐너 기능이 비활성화되었습니다."
-      description="현재 미국 실시간 스캐너 호출과 화면 렌더링을 모두 중단한 상태입니다."
-    />
+    <main className={styles.page}>
+      <PageNavigation current="scanners-us" />
+      
+      <header className={styles.hero}>
+        <p className={styles.kicker}>REAL-TIME US MARKET SCANNERS</p>
+        <h1 className={styles.title}>미국 종합 시장 스캐너</h1>
+      </header>
+
+      <div className={styles.grid}>
+        <UsTradingIntensity />
+        <UsVolumeSpike />
+        <UsNetBuying />
+        <UsProgramTrading />
+        <UsNewHigh />
+        <UsBidAskRatio />
+      </div>
+    </main>
   );
 }

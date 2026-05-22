@@ -24,8 +24,25 @@ export async function GET() {
       }
     }
 
+    // 가짜(Mock/시뮬레이션) 데이터가 절대 흘러나가지 못하게 필터링 적용 (실데이터 무결성 확보)
+    const filteredRecords = records.filter((r) => {
+      const company = r.company.toLowerCase();
+      const code = r.code;
+      
+      // 시뮬레이션, mock, 상승 종목, 테스트가 들어있거나 코드 형식이 테스트용(00000x 등)인 경우 필터링
+      if (company.includes("시뮬레이션") || 
+          company.includes("mock") || 
+          company.includes("상승 종목") || 
+          company.includes("테스트") ||
+          code.startsWith("00000") || 
+          code.startsWith("90000")) {
+        return false;
+      }
+      return true;
+    });
+
     // 등락률 숫자 기준으로 내림차순 정렬
-    const sortedRecords = records.sort((a, b) => {
+    const sortedRecords = filteredRecords.sort((a, b) => {
       const rateA = parseFloat(a.changeRate.replace(/[+%]/g, "")) || 0;
       const rateB = parseFloat(b.changeRate.replace(/[+%]/g, "")) || 0;
       return rateB - rateA;

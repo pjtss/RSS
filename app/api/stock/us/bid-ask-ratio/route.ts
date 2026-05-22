@@ -1,5 +1,11 @@
-import { createDisabledApiResponse } from "@/lib/feature-flags";
+import { NextResponse } from "next/server";
+import { fetchUsBidAskRatio } from "@/lib/kis-us";
 
 export async function GET() {
-  return createDisabledApiResponse("미국 스캐너");
+  try {
+    const data = await fetchUsBidAskRatio();
+    return NextResponse.json(data);
+  } catch (err) {
+    return NextResponse.json({ error: "Failed to fetch US bid ask ratio" }, { status: 500 });
+  }
 }
