@@ -250,7 +250,6 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
       }
     }
   } catch (err) {
-    (globalThis as any).lastKisUsError = err;
     console.warn("[KIS-US] fetchUsTradingIntensity live fetch failed, reading DB cache:", err);
   }
 
@@ -261,12 +260,8 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) return cacheRecord[0].data as StockIntensity[];
     }
-  } catch {}
-
-  if ((globalThis as any).lastKisUsError) {
-    const err = (globalThis as any).lastKisUsError;
-    (globalThis as any).lastKisUsError = null; // Clear error to avoid side effects
-    throw err;
+  } catch (dbReadErr) {
+    console.error("[KIS-US] Failed to read us_trading_intensity from DB cache:", dbReadErr);
   }
 
   return [];
@@ -353,7 +348,9 @@ export async function fetchUsVolumeSpike(): Promise<VolumeSpikeItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) return cacheRecord[0].data as VolumeSpikeItem[];
     }
-  } catch {}
+  } catch (dbReadErr) {
+    console.error("[KIS-US] Failed to read us_volume_spike from DB cache:", dbReadErr);
+  }
 
   return [];
 }
@@ -437,7 +434,9 @@ export async function fetchUsNetBuying(): Promise<NetBuyingItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) return cacheRecord[0].data as NetBuyingItem[];
     }
-  } catch {}
+  } catch (dbReadErr) {
+    console.error("[KIS-US] Failed to read us_net_buying from DB cache:", dbReadErr);
+  }
 
   return [];
 }
@@ -519,7 +518,9 @@ export async function fetchUsProgramTrading(): Promise<ProgramTradingItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) return cacheRecord[0].data as ProgramTradingItem[];
     }
-  } catch {}
+  } catch (dbReadErr) {
+    console.error("[KIS-US] Failed to read us_program_trading from DB cache:", dbReadErr);
+  }
 
   return [];
 }
@@ -601,7 +602,9 @@ export async function fetchUsNewHigh(): Promise<NewHighItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) return cacheRecord[0].data as NewHighItem[];
     }
-  } catch {}
+  } catch (dbReadErr) {
+    console.error("[KIS-US] Failed to read us_new_high from DB cache:", dbReadErr);
+  }
 
   return [];
 }
@@ -683,7 +686,9 @@ export async function fetchUsBidAskRatio(): Promise<BidAskRatioItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) return cacheRecord[0].data as BidAskRatioItem[];
     }
-  } catch {}
+  } catch (dbReadErr) {
+    console.error("[KIS-US] Failed to read us_bid_ask_ratio from DB cache:", dbReadErr);
+  }
 
   return [];
 }

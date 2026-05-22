@@ -878,6 +878,24 @@ async function fetchRealFluctuationRank(token: string): Promise<KisOutput[]> {
   return resData.output || [];
 }
 
+// Mock 데이터 유출 방지 헬퍼 함수
+function filterMockRisingStocks(items: TopRisingStockItem[]): TopRisingStockItem[] {
+  if (!items) return [];
+  return items.filter((r) => {
+    const company = (r.company || "").toLowerCase();
+    const code = r.code || "";
+    if (company.includes("시뮬레이션") || 
+        company.includes("mock") || 
+        company.includes("상승 종목") || 
+        company.includes("테스트") ||
+        code.startsWith("00000") || 
+        code.startsWith("90000")) {
+      return false;
+    }
+    return true;
+  });
+}
+
 // 상승률 상위 TOP 10 조회
 export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
   const offset = getDynamicOffset(7);
@@ -903,7 +921,9 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
       const db = getDb();
       if (db) {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "top_rising_stocks")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as TopRisingStockItem[];
+        if (cacheRecord.length > 0) {
+          return filterMockRisingStocks(cacheRecord[0].data as TopRisingStockItem[]);
+        }
       }
     } catch {}
     return [];
@@ -946,7 +966,7 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
         }
 
-        return mappedData;
+        return filterMockRisingStocks(mappedData);
       }
     }
   } catch (err) {
@@ -965,7 +985,7 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
       .limit(1);
 
       if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as TopRisingStockItem[];
+        return filterMockRisingStocks(cacheRecord[0].data as TopRisingStockItem[]);
       }
     }
   } catch (dbReadErr) {
