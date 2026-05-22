@@ -20,30 +20,10 @@ export async function GET() {
     let records = await db.select().from(topRisingStocks);
     let debugReason = "Records found in database.";
 
-    // 1. DB가 비어있는 경우, 자동으로 최신 KIS TOP 10 동기화 트리거
-    if (records.length === 0) {
-      debugReason = "DB topRisingStocks table was empty. Triggered auto syncTopRisingStocks.";
-      try {
-        await syncTopRisingStocks();
-        records = await db.select().from(topRisingStocks);
-        if (records.length === 0) {
-          debugReason = "DB was empty, triggered auto-sync, but KIS OpenAPI still returned 0 items (possibly outside market hours or invalid credentials).";
-        } else {
-          debugReason = "DB was empty, triggered auto-sync, and successfully retrieved records.";
-        }
-      } catch (syncErr: any) {
-        debugReason = `DB was empty, triggered auto-sync, but it crashed: ${syncErr.message || syncErr}`;
-        console.warn("[KIS] Auto sync on empty DB failed:", syncErr);
-      }
-    }
-
-    // 가짜(Mock/시뮬레이션) 데이터가 절대 흘러나가지 못하게 필터링 적용 (실데이터 무결성 확보)
-    const originalCount = records.length;
-    const filteredRecords = records.filter((r) => {
-      const company = r.company.toLowerCase();
-      const code = r.code;
-      
-      // 시뮬레이션, mock, 상승 종목, 테스트가 들어있거나 코드 형식이 테스트용(00000x 등)인 경우 필터링
+    // 가짜(Mock/시뮬레이션) 데이터가 절대 흘러나가지 못하게 필터링 적용하는 헬퍼 함수
+    const filterFunc = (r: any) => {
+      const company = (r.company || "").toLowerCase();
+      const code = r.code || "";
       if (company.includes("시뮬레이션") || 
           company.includes("mock") || 
           company.includes("상승 종목") || 
@@ -53,10 +33,29 @@ export async function GET() {
         return false;
       }
       return true;
-    });
+    };
 
-    if (originalCount > 0 && filteredRecords.length === 0) {
-      debugReason = `Retrieved ${originalCount} records from DB, but ALL of them were filtered out as MOCK/TEST data. Code starting with 00000/90000 or company name containing test/mock.`;
+    let filteredRecords = records.filter(filterFunc);
+
+    // 1. DB가 비어있거나, DB에 레코드가 있지만 유효한(실거래) 레코드가 0개인 경우 (모두 Mock 데이터로 채워진 자가 치유 대상)
+    if (records.length === 0 || filteredRecords.length === 0) {
+      debugReason = records.length === 0 
+        ? "DB topRisingStocks table was empty. Triggered auto syncTopRisingStocks."
+        : `DB contained ${records.length} records, but all were filtered out as MOCK. Triggered auto syncTopRisingStocks.`;
+      
+      try {
+        await syncTopRisingStocks();
+        records = await db.select().from(topRisingStocks);
+        filteredRecords = records.filter(filterFunc);
+        if (filteredRecords.length === 0) {
+          debugReason = "Triggered auto-sync, but KIS OpenAPI still returned 0 valid items (possibly outside market hours or invalid credentials).";
+        } else {
+          debugReason = "Successfully triggered auto-sync and retrieved valid KIS records.";
+        }
+      } catch (syncErr: any) {
+        debugReason = `Triggered auto-sync, but it crashed: ${syncErr.message || syncErr}`;
+        console.warn("[KIS] Auto sync failed:", syncErr);
+      }
     }
 
     // 등락률 숫자 기준으로 내림차순 정렬

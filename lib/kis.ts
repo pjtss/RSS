@@ -65,9 +65,8 @@ const KIS_APPSECRET = process.env.KIS_APPSECRET;
 let kisMode: "real" | "mock" = "real";
 
 export function getKisMode(): "real" | "mock" {
-  const isMockKey = KIS_APPKEY?.startsWith("PS") || KIS_APPKEY?.startsWith("TS") || KIS_APPKEY?.startsWith("VT");
-  if (isMockKey) return "mock";
-  return kisMode;
+  if (process.env.NODE_ENV === "test") return "mock"; // 유닛 테스트용 격리만 허용
+  return "real"; // 실전투자 100% 무조건 고정!
 }
 
 // 백그라운드 DB 미설정 또는 테스트용 인메모리 캐시 폴백 설정
@@ -107,64 +106,58 @@ export async function getAccessToken(): Promise<string | null> {
     }
   }
 
-  // 2. 캐시 만료 또는 조회 불가 시 KIS API 정식 요청 실행 (실전 및 모의투자 자동 대응)
-  const isMockKey = KIS_APPKEY?.startsWith("PS") || KIS_APPKEY?.startsWith("TS") || KIS_APPKEY?.startsWith("VT");
-  const urls = isMockKey 
-    ? ["https://openapivts.koreainvestment.com:29443/oauth2/tokenP", "https://openapi.koreainvestment.com:9443/oauth2/tokenP"]
-    : ["https://openapi.koreainvestment.com:9443/oauth2/tokenP", "https://openapivts.koreainvestment.com:29443/oauth2/tokenP"];
-
-  for (const url of urls) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          grant_type: "client_credentials",
-          appkey: KIS_APPKEY,
-          appsecret: KIS_APPSECRET,
-        }),
-      });
-      
-      if (!response.ok) {
-        console.warn(`[KIS] Token fetch failed for ${url} with HTTP ${response.status}`);
-        continue;
-      }
-
-      const data = await response.json();
-      if (data.access_token) {
-        const token = data.access_token;
-        kisMode = url.includes("openapivts") ? "mock" : "real";
-        console.info(`[KIS] Successfully authenticated via ${kisMode} server.`);
-        
-        const expTime = Date.now() + 20 * 60 * 60 * 1000;
-        const expDate = new Date(expTime);
-
-        // 데이터베이스 캐시 업데이트 실행 (upsert)
-        try {
-          const db = getDb();
-          if (db) {
-            await db.insert(kisTokens)
-              .values({ id: 1, accessToken: token, expiresAt: expDate })
-              .onConflictDoUpdate({
-                target: kisTokens.id,
-                set: { accessToken: token, expiresAt: expDate }
-              });
-          }
-        } catch (dbWriteErr) {
-          console.error("[KIS] Failed to write token to DB cache:", dbWriteErr);
-        }
-
-        // 인메모리 캐시 갱신
-        cachedToken = token;
-        tokenExpiresAt = expTime;
-
-        return token;
-      }
-    } catch (err) {
-      console.warn(`[KIS] Token request failed for ${url}:`, err);
+  // 2. 캐시 만료 또는 조회 불가 시 KIS API 정식 요청 실행 (오직 실전투자용)
+  const url = "https://openapi.koreainvestment.com:9443/oauth2/tokenP";
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        grant_type: "client_credentials",
+        appkey: KIS_APPKEY,
+        appsecret: KIS_APPSECRET,
+      }),
+    });
+    
+    if (!response.ok) {
+      console.warn(`[KIS] Token fetch failed for ${url} with HTTP ${response.status}`);
+      return null;
     }
+
+    const data = await response.json();
+    if (data.access_token) {
+      const token = data.access_token;
+      kisMode = "real";
+      console.info(`[KIS] Successfully authenticated via real server.`);
+      
+      const expTime = Date.now() + 20 * 60 * 60 * 1000;
+      const expDate = new Date(expTime);
+
+      // 데이터베이스 캐시 업데이트 실행 (upsert)
+      try {
+        const db = getDb();
+        if (db) {
+          await db.insert(kisTokens)
+            .values({ id: 1, accessToken: token, expiresAt: expDate })
+            .onConflictDoUpdate({
+              target: kisTokens.id,
+              set: { accessToken: token, expiresAt: expDate }
+            });
+        }
+      } catch (dbWriteErr) {
+        console.error("[KIS] Failed to write token to DB cache:", dbWriteErr);
+      }
+
+      // 인메모리 캐시 갱신
+      cachedToken = token;
+      tokenExpiresAt = expTime;
+
+      return token;
+    }
+  } catch (err) {
+    console.warn(`[KIS] Token request failed for ${url}:`, err);
   }
 
   return null;
@@ -213,11 +206,8 @@ async function fetchRealVolumeRank(token: string): Promise<KisOutput[]> {
     FID_SUB_AND_DO_CLS_CODE: "N",
   });
 
-  const mode = getKisMode();
-  const baseUrl = mode === "mock" 
-    ? "https://openapivts.koreainvestment.com:29443" 
-    : "https://openapi.koreainvestment.com:9443";
-  const trId = mode === "mock" ? "VTST01710000" : "FHPST01710000";
+  const baseUrl = "https://openapi.koreainvestment.com:9443";
+  const trId = "FHPST01710000";
 
   const url = `${baseUrl}/uapi/domestic-stock/v1/quotations/volume-rank?${params.toString()}`;
   const response = await fetch(url, {
@@ -846,15 +836,12 @@ async function fetchRealFluctuationRank(token: string): Promise<KisOutput[]> {
     FID_DIV_CLS_CODE: "0",
     FID_RANK_SORT_CLS_CODE: "0", // 상승률 순
     FID_PRC_CLS_CODE: "0",
-    FID_TRGT_CLS_CODE: "0",
-    FID_TRGT_EXLS_CLS_CODE: "0",
+    FID_TRGT_CLS_CODE: "000000000", // KIS Developers 공식 규격 9자리 준수
+    FID_TRGT_EXLS_CLS_CODE: "000000000", // KIS Developers 공식 규격 9자리 준수
   });
 
-  const mode = getKisMode();
-  const baseUrl = mode === "mock" 
-    ? "https://openapivts.koreainvestment.com:29443" 
-    : "https://openapi.koreainvestment.com:9443";
-  const trId = mode === "mock" ? "VTST01700000" : "FHPST01700000";
+  const baseUrl = "https://openapi.koreainvestment.com:9443";
+  const trId = "FHPST01700000";
 
   const url = `${baseUrl}/uapi/domestic-stock/v1/ranking/fluctuation?${params.toString()}`;
   const response = await fetch(url, {

@@ -88,16 +88,14 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
     CNT: "30",   // 조회 건수
   });
 
-  const mode = getKisMode();
-  const baseUrl = mode === "mock"
-    ? "https://openapivts.koreainvestment.com:29443"
-    : "https://openapi.koreainvestment.com:9443";
-  const trId = mode === "mock" ? "VHDFS76320010" : "HHDFS76320010";
+  // 오직 실전투자 계좌만 지원 (모의투자 완전 배제, 실거래 서버 고정)
+  const baseUrl = "https://openapi.koreainvestment.com:9443";
+  const trId = "HHDFS76320010";
 
   // 해외주식 거래대금/거래량 순위 OpenAPI
   const url = `${baseUrl}/uapi/overseas-stock/v1/ranking/trade-pbmn?${params.toString()}`;
   
-  console.info(`[KIS-US-DEBUG] fetchRealUsVolumeRank: Requesting KIS US Stock rank from ${baseUrl} using mode '${mode}', tr_id '${trId}'`);
+  console.info(`[KIS-US-DEBUG] fetchRealUsVolumeRank: Requesting KIS US Stock rank from ${baseUrl} using real account tr_id '${trId}'`);
   try {
     const response = await fetch(url, {
       method: "GET",
