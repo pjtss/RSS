@@ -21,7 +21,7 @@ describe('PageNavigation Component', () => {
     render(<PageNavigation current="home" />);
     expect(screen.getByText('홈')).toBeDefined();
     expect(screen.getByText('DART')).toBeDefined();
-    expect(screen.getByText('OPEN DART')).toBeDefined();
+
     expect(screen.getByText('상승률 TOP 10')).toBeDefined();
     expect(screen.getByText('체결강도 TOP 10')).toBeDefined();
   });

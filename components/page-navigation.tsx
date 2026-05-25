@@ -31,13 +31,7 @@ export function PageNavigation({ current }: { current: PageKey }) {
         <Link className={current === "dart" ? styles.navActive : styles.navLink} href="/dart" prefetch={false}>
           DART
         </Link>
-        <Link
-          className={current === "dart-opendart-fast" ? styles.navActive : styles.navLink}
-          href="/dart/opendart-fast"
-          prefetch={false}
-        >
-          OPEN DART
-        </Link>
+
         <Link
           className={current === "top-rising" ? styles.navActive : styles.navLink}
           href="/scanners/top-rising"

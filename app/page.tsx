@@ -17,9 +17,6 @@ export default function HomePage() {
           <Link href="/dart" className={styles.primary} prefetch={false}>
             DART 호재 공시 보기
           </Link>
-          <Link href="/dart/opendart-fast" className={styles.secondary} prefetch={false}>
-            OPEN DART 빠른 공시
-          </Link>
         </div>
       </section>
     </main>
