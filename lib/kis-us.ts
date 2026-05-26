@@ -106,6 +106,8 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
         appkey: KIS_APPKEY || "",
         appsecret: KIS_APPSECRET || "",
         tr_id: trId,
+        custtype: "P",  // 해외주식 API 필수 헤더 (P: 개인, B: 법인)
+        tr_cont: "",    // 연속조회 비사용
       },
     });
 
@@ -1009,6 +1011,7 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
         console.info(`[KIS-US-DEBUG] fetchTopRisingStocks: Successfully fetched ${filtered.length} real-time items.`);
         (filtered as any).isFallback = (realItems as any).isFallback;
         (filtered as any).fallbackSource = (realItems as any).fallbackSource;
+        (filtered as any).kisError = (realItems as any).kisError ?? null;
         return filtered;
       }
     }
