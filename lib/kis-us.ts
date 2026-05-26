@@ -86,7 +86,7 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
     EXCD: excd,       // 거래소 코드
     GUBN: "1",        // 상승율/하락율 구분 (1: 상승율)
     NDAY: "0",        // 날짜 구분
-    VOL_RANG: "0",    // 거래량 조건 (0: 전체, 어떤 급등주든 누락 방지하기 위해 0만주 이상으로 조건 완화)
+    VOL_RANG: "5",    // 거래량 조건 (5: 거래량이 활성화된 종목을 수집하여 왜곡 방지)
   });
 
   // 오직 실전투자 계좌만 지원 (모의투자 완전 배제, 실거래 서버 고정)
