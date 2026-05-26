@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { syncTopRisingStocks, fetchTopRisingStocks } from "@/lib/kis";
+import { syncTopRisingStocks, fetchTopRisingStocks } from "@/lib/kis-us";
 import { sendPushAlerts } from "@/lib/push";
 import type { AlertItem } from "@/lib/types";
 

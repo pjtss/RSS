@@ -10,12 +10,17 @@ export default function HomePage() {
         <p className={styles.kicker}>STOCKMAN QUANT</p>
         <h1>주식 모니터 터미널</h1>
         <p className={styles.description}>
-          실시간 DART 공시 조회 및 호재 필터링 기능이 정상적으로 활성화되어 작동 중입니다.
-          그 외 SEC 공시, 국내/미국 스캐너 및 기타 보조 기능은 현재 비활성화 상태입니다.
+          실시간 DART 공시 조회, 국내주식 체결강도 TOP 10, 해외주식 상승률 TOP 10 기능이 정상적으로 활성화되어 작동 중입니다.
         </p>
         <div className={styles.actions}>
           <Link href="/dart" className={styles.primary} prefetch={false}>
-            DART 호재 공시 보기
+            DART 공시 분석
+          </Link>
+          <Link href="/scanners/trading-intensity" className={styles.primary} prefetch={false}>
+            국내 체결강도 TOP 10
+          </Link>
+          <Link href="/scanners/top-rising" className={styles.primary} prefetch={false}>
+            해외 상승률 TOP 10
           </Link>
         </div>
       </section>

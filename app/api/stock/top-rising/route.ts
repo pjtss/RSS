@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { topRisingStocks, kisCache } from "@/lib/schema";
-import { syncTopRisingStocks } from "@/lib/kis";
+import { syncTopRisingStocks } from "@/lib/kis-us";
 import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -114,6 +114,9 @@ export async function GET() {
 
     if (sortedRecords.length === 0) {
       headers.set("x-debug-status", "empty");
+      headers.set("x-debug-reason", debugReason);
+    } else if (debugReason.includes("restored") || debugReason.includes("fallback") || debugReason.includes("crashed")) {
+      headers.set("x-debug-status", "fallback");
       headers.set("x-debug-reason", debugReason);
     } else {
       headers.set("x-debug-status", "success");

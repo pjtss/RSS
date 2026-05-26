@@ -4,7 +4,7 @@ export const FEATURE_FLAGS = {
   dartRealtimeDisabled: false,
   secRealtimeDisabled: true,
   domesticScannersDisabled: false,
-  usScannersDisabled: false,
+  usScannersDisabled: true,
 } as const;
 
 export function createDisabledApiResponse(featureName: string) {

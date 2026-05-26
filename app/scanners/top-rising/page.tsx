@@ -17,6 +17,7 @@ export default function TopRisingPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
 
   const fetchStocks = async () => {
     try {
@@ -30,8 +31,13 @@ export default function TopRisingPage() {
       
       if (debugStatus === "empty" || debugStatus === "error") {
         console.warn(`🚨 [KIS-DEBUG-CLIENT] 상승률 TOP 10 데이터 없음 감지! 상태: [${debugStatus}], 원인: ${debugReason}`);
+        setIsFallback(false);
+      } else if (debugStatus === "fallback") {
+        console.warn(`⚠️ [KIS-DEBUG-CLIENT] 상승률 KIS API 장애에 따른 DB 캐시 폴백 감지! 원인: ${debugReason}`);
+        setIsFallback(true);
       } else {
         console.info(`⚡ [KIS-DEBUG-CLIENT] 상승률 TOP 10 데이터 로드 성공: ${debugReason}`);
+        setIsFallback(false);
       }
 
       if (!res.ok) {
@@ -101,9 +107,9 @@ export default function TopRisingPage() {
         <div className={styles.headerArea}>
           <div className={styles.titleGroup}>
             <p className={styles.kicker}>LIVE QUANT TERMINAL</p>
-            <h1>상승률 TOP 10 스캐너</h1>
+            <h1>해외주식 상승률 TOP 10</h1>
             <p className={styles.subtitle}>
-              실시간 국내 주식 상승률 상위 TOP 10 종목을 모니터링하고 DB에 저장/갱신합니다.
+              실시간 미국 주식 상승률 상위 TOP 10 종목을 모니터링하고 DB에 저장/갱신합니다.
             </p>
           </div>
           <button
@@ -114,6 +120,23 @@ export default function TopRisingPage() {
             {syncing ? "⚡ 동기화 중..." : "🔄 실시간 수동 갱신"}
           </button>
         </div>
+
+        {isFallback && (
+          <div className={styles.warningAlert} style={{
+            background: "rgba(234, 179, 8, 0.1)",
+            border: "1px solid rgba(234, 179, 8, 0.2)",
+            color: "#eab308",
+            padding: "12px 16px",
+            borderRadius: "12px",
+            marginBottom: "16px",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}>
+            <span>⚠️ WARNING: 실시간 KIS API 연동 장애 상태입니다. 현재 표시되는 데이터는 최종 캐시(이전 영업일 마감) 데이터입니다.</span>
+          </div>
+        )}
 
         {error && (
           <div className={styles.errorAlert}>
@@ -157,7 +180,7 @@ export default function TopRisingPage() {
                       </td>
                       <td className={styles.companyCell}>{stock.company}</td>
                       <td className={styles.codeCell}>{stock.code}</td>
-                      <td className={styles.priceCell}>{stock.price}원</td>
+                      <td className={styles.priceCell}>{stock.price}</td>
                       <td className={`${styles.rateCell} ${isUp ? styles.up : styles.down}`}>
                         {stock.changeRate}
                       </td>

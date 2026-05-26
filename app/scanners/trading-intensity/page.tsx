@@ -18,6 +18,7 @@ export default function TradingIntensityScannerPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
 
   const fetchStocks = async (isAuto = false) => {
     try {
@@ -32,8 +33,13 @@ export default function TradingIntensityScannerPage() {
       
       if (debugStatus === "empty" || debugStatus === "error") {
         console.warn(`🚨 [KIS-DEBUG-CLIENT] 체결강도 TOP 10 데이터 없음 감지! 상태: [${debugStatus}], 원인: ${debugReason}`);
+        setIsFallback(false);
+      } else if (debugStatus === "fallback") {
+        console.warn(`⚠️ [KIS-DEBUG-CLIENT] 체결강도 KIS API 장애에 따른 DB 캐시 폴백 감지! 원인: ${debugReason}`);
+        setIsFallback(true);
       } else {
         console.info(`⚡ [KIS-DEBUG-CLIENT] 체결강도 TOP 10 데이터 로드 성공: ${debugReason}`);
+        setIsFallback(false);
       }
 
       if (!res.ok) {
@@ -149,6 +155,23 @@ export default function TradingIntensityScannerPage() {
             </button>
           </div>
         </div>
+
+        {isFallback && (
+          <div className={styles.warningAlert} style={{
+            background: "rgba(234, 179, 8, 0.1)",
+            border: "1px solid rgba(234, 179, 8, 0.2)",
+            color: "#eab308",
+            padding: "12px 16px",
+            borderRadius: "12px",
+            marginBottom: "16px",
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px"
+          }}>
+            <span>⚠️ WARNING: 실시간 KIS API 연동 장애 상태입니다. 현재 표시되는 데이터는 최종 캐시(이전 영업일 마감) 데이터입니다.</span>
+          </div>
+        )}
 
         {error && (
           <div className={styles.errorAlert}>

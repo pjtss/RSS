@@ -40,7 +40,7 @@ vi.mock("./db", () => {
   };
 });
 
-import { fetchTopRisingStocks, syncTopRisingStocks } from "./kis";
+import { fetchTopRisingStocks, syncTopRisingStocks } from "./kis-us";
 
 describe("Top Rising Stocks Scanner Logic", () => {
   beforeEach(() => {
@@ -50,15 +50,15 @@ describe("Top Rising Stocks Scanner Logic", () => {
   it("fetchTopRisingStocks in test environment returns mocked items", async () => {
     const data = await fetchTopRisingStocks();
     expect(data).toHaveLength(10);
-    expect(data[0].company).toBe("상승 종목 A");
+    expect(data[0].company).toBe("US Rising Stock A");
     expect(data[0].code).toBe("900000");
     expect(data[0].changeRate).toContain("%");
   });
 
   it("syncTopRisingStocks performs insert, delete, update queries", async () => {
     const oldTop10 = [
-      { code: "900000", company: "상승 종목 A", changeRate: "+29.50%", price: "25,000", addedAt: new Date() },
-      { code: "900009", company: "상승 종목 J", changeRate: "+10.60%", price: "11,500", addedAt: new Date() },
+      { code: "900000", company: "US Rising Stock A", changeRate: "+29.50%", price: "250.00", addedAt: new Date() },
+      { code: "900009", company: "US Rising Stock J", changeRate: "+10.60%", price: "115.00", addedAt: new Date() },
       { code: "888888", company: "상승 종목 제거", changeRate: "+5.00%", price: "5,000", addedAt: new Date() },
     ];
 

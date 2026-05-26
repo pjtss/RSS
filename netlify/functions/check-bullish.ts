@@ -3,7 +3,7 @@ import { ensureSchema } from "../../lib/db";
 import { syncDartAlerts } from "../../lib/alerts";
 import { sendPushAlerts } from "../../lib/push";
 import { sendTelegramAlerts } from "../../lib/telegram";
-import { syncTopRisingStocks } from "../../lib/kis";
+import { syncTopRisingStocks } from "../../lib/kis-us";
 import type { AlertItem } from "../../lib/types";
 
 export const handler = schedule("*/1 * * * *", async () => {

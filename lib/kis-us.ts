@@ -1,6 +1,6 @@
 import { getDb } from "./db";
-import { kisCache } from "./schema";
-import { eq } from "drizzle-orm";
+import { kisCache, topRisingStocks } from "./schema";
+import { eq, inArray } from "drizzle-orm";
 import { getAccessToken, getKisMode } from "./kis";
 
 const KIS_APPKEY = process.env.KIS_APPKEY;
@@ -127,7 +127,7 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
     console.info(`[KIS-US-DEBUG] fetchRealUsVolumeRank: KIS OpenAPI successfully returned ${items.length} items.`);
 
     // 해외 거래량 API output mapping (공식 KIS 해외주식 거래대금순위 필드명 동기화)
-    return items.map((item: any) => ({
+    const result = items.map((item: any) => ({
       symb: item.symb || "",
       name: item.hts_kor_isnm || "",
       last: item.stck_prpr || "0",
@@ -136,6 +136,9 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
       vol: item.acml_vol || "0",
       amount: item.acml_tr_pbmn || "0",
     }));
+    (result as any).isFallback = false;
+    (result as any).fallbackSource = "";
+    return result;
   } catch (err: any) {
     console.warn(`[KIS-US-DEBUG] fetchRealUsVolumeRank: KIS live fetch failed ('${err.message || err}'). Trying Yahoo Finance live fallback...`);
     
@@ -156,7 +159,7 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
         const quotes = yfData.finance?.result?.[0]?.quotes || [];
         if (quotes.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchRealUsVolumeRank: Yahoo Finance live fallback succeeded, fetched ${quotes.length} quotes.`);
-          return quotes.map((q: any) => {
+          const yfResult = quotes.map((q: any) => {
             const price = q.regularMarketPrice || 0;
             const changePercent = q.regularMarketChangePercent || 0;
             const change = q.regularMarketChange || 0;
@@ -173,6 +176,9 @@ async function fetchRealUsVolumeRank(token: string): Promise<KisUsOutput[]> {
               amount: String(amount),
             };
           });
+          (yfResult as any).isFallback = true;
+          (yfResult as any).fallbackSource = "yahoo";
+          return yfResult;
         } else {
           console.warn("[KIS-US-DEBUG] fetchRealUsVolumeRank: Yahoo Finance live fallback returned empty quotes array.");
         }
@@ -222,7 +228,10 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
         if (cacheRecord.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchUsTradingIntensity: Successfully restored ${(cacheRecord[0].data as any[]).length} items from DB cache.`);
-          return cacheRecord[0].data as StockIntensity[];
+          const cachedData = cacheRecord[0].data as StockIntensity[];
+          (cachedData as any).isFallback = true;
+          (cachedData as any).fallbackSource = "db";
+          return cachedData;
         }
         console.warn(`[KIS-US-DEBUG] fetchUsTradingIntensity empty return: Credentials missing and DB cache '${cacheKey}' is empty.`);
       } else {
@@ -274,6 +283,8 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
         }
 
         console.info(`[KIS-US-DEBUG] fetchUsTradingIntensity: Successfully fetched ${mappedData.length} items in realtime.`);
+        (mappedData as any).isFallback = (realItems as any).isFallback;
+        (mappedData as any).fallbackSource = (realItems as any).fallbackSource;
         return mappedData;
       } else {
         console.warn("[KIS-US-DEBUG] fetchUsTradingIntensity: Realtime fetch succeeded but returned 0 items.");
@@ -292,7 +303,10 @@ export async function fetchUsTradingIntensity(): Promise<StockIntensity[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) {
         console.info(`[KIS-US-DEBUG] fetchUsTradingIntensity: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
-        return cacheRecord[0].data as StockIntensity[];
+        const cachedData = cacheRecord[0].data as StockIntensity[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
       }
       console.warn(`[KIS-US-DEBUG] fetchUsTradingIntensity empty return: DB cache key '${cacheKey}' is empty.`);
     } else {
@@ -335,7 +349,10 @@ export async function fetchUsVolumeSpike(): Promise<VolumeSpikeItem[]> {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
         if (cacheRecord.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchUsVolumeSpike: Successfully restored ${(cacheRecord[0].data as any[]).length} items from DB cache.`);
-          return cacheRecord[0].data as VolumeSpikeItem[];
+          const cachedData = cacheRecord[0].data as VolumeSpikeItem[];
+          (cachedData as any).isFallback = true;
+          (cachedData as any).fallbackSource = "db";
+          return cachedData;
         }
         console.warn(`[KIS-US-DEBUG] fetchUsVolumeSpike empty return: Credentials missing and DB cache '${cacheKey}' is empty.`);
       } else {
@@ -386,6 +403,8 @@ export async function fetchUsVolumeSpike(): Promise<VolumeSpikeItem[]> {
         }
 
         console.info(`[KIS-US-DEBUG] fetchUsVolumeSpike: Successfully fetched ${mappedData.length} items in realtime.`);
+        (mappedData as any).isFallback = (realItems as any).isFallback;
+        (mappedData as any).fallbackSource = (realItems as any).fallbackSource;
         return mappedData;
       } else {
         console.warn("[KIS-US-DEBUG] fetchUsVolumeSpike: Realtime fetch succeeded but returned 0 items.");
@@ -403,7 +422,10 @@ export async function fetchUsVolumeSpike(): Promise<VolumeSpikeItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) {
         console.info(`[KIS-US-DEBUG] fetchUsVolumeSpike: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
-        return cacheRecord[0].data as VolumeSpikeItem[];
+        const cachedData = cacheRecord[0].data as VolumeSpikeItem[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
       }
       console.warn(`[KIS-US-DEBUG] fetchUsVolumeSpike empty return: DB cache key '${cacheKey}' is empty.`);
     } else {
@@ -446,7 +468,10 @@ export async function fetchUsNetBuying(): Promise<NetBuyingItem[]> {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
         if (cacheRecord.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchUsNetBuying: Successfully restored ${(cacheRecord[0].data as any[]).length} items from DB cache.`);
-          return cacheRecord[0].data as NetBuyingItem[];
+          const cachedData = cacheRecord[0].data as NetBuyingItem[];
+          (cachedData as any).isFallback = true;
+          (cachedData as any).fallbackSource = "db";
+          return cachedData;
         }
         console.warn(`[KIS-US-DEBUG] fetchUsNetBuying empty return: Credentials missing and DB cache '${cacheKey}' is empty.`);
       } else {
@@ -495,6 +520,8 @@ export async function fetchUsNetBuying(): Promise<NetBuyingItem[]> {
         }
 
         console.info(`[KIS-US-DEBUG] fetchUsNetBuying: Successfully fetched ${mappedData.length} items in realtime.`);
+        (mappedData as any).isFallback = (realItems as any).isFallback;
+        (mappedData as any).fallbackSource = (realItems as any).fallbackSource;
         return mappedData;
       } else {
         console.warn("[KIS-US-DEBUG] fetchUsNetBuying: Realtime fetch succeeded but returned 0 items.");
@@ -512,7 +539,10 @@ export async function fetchUsNetBuying(): Promise<NetBuyingItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) {
         console.info(`[KIS-US-DEBUG] fetchUsNetBuying: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
-        return cacheRecord[0].data as NetBuyingItem[];
+        const cachedData = cacheRecord[0].data as NetBuyingItem[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
       }
       console.warn(`[KIS-US-DEBUG] fetchUsNetBuying empty return: DB cache key '${cacheKey}' is empty.`);
     } else {
@@ -554,7 +584,10 @@ export async function fetchUsProgramTrading(): Promise<ProgramTradingItem[]> {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
         if (cacheRecord.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchUsProgramTrading: Successfully restored ${(cacheRecord[0].data as any[]).length} items from DB cache.`);
-          return cacheRecord[0].data as ProgramTradingItem[];
+          const cachedData = cacheRecord[0].data as ProgramTradingItem[];
+          (cachedData as any).isFallback = true;
+          (cachedData as any).fallbackSource = "db";
+          return cachedData;
         }
         console.warn(`[KIS-US-DEBUG] fetchUsProgramTrading empty return: Credentials missing and DB cache '${cacheKey}' is empty.`);
       } else {
@@ -602,6 +635,8 @@ export async function fetchUsProgramTrading(): Promise<ProgramTradingItem[]> {
         }
 
         console.info(`[KIS-US-DEBUG] fetchUsProgramTrading: Successfully fetched ${mappedData.length} items in realtime.`);
+        (mappedData as any).isFallback = (realItems as any).isFallback;
+        (mappedData as any).fallbackSource = (realItems as any).fallbackSource;
         return mappedData;
       } else {
         console.warn("[KIS-US-DEBUG] fetchUsProgramTrading: Realtime fetch succeeded but returned 0 items.");
@@ -619,7 +654,10 @@ export async function fetchUsProgramTrading(): Promise<ProgramTradingItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) {
         console.info(`[KIS-US-DEBUG] fetchUsProgramTrading: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
-        return cacheRecord[0].data as ProgramTradingItem[];
+        const cachedData = cacheRecord[0].data as ProgramTradingItem[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
       }
       console.warn(`[KIS-US-DEBUG] fetchUsProgramTrading empty return: DB cache key '${cacheKey}' is empty.`);
     } else {
@@ -661,7 +699,10 @@ export async function fetchUsNewHigh(): Promise<NewHighItem[]> {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
         if (cacheRecord.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchUsNewHigh: Successfully restored ${(cacheRecord[0].data as any[]).length} items from DB cache.`);
-          return cacheRecord[0].data as NewHighItem[];
+          const cachedData = cacheRecord[0].data as NewHighItem[];
+          (cachedData as any).isFallback = true;
+          (cachedData as any).fallbackSource = "db";
+          return cachedData;
         }
         console.warn(`[KIS-US-DEBUG] fetchUsNewHigh empty return: Credentials missing and DB cache '${cacheKey}' is empty.`);
       } else {
@@ -709,6 +750,8 @@ export async function fetchUsNewHigh(): Promise<NewHighItem[]> {
         }
 
         console.info(`[KIS-US-DEBUG] fetchUsNewHigh: Successfully fetched ${mappedData.length} items in realtime.`);
+        (mappedData as any).isFallback = (realItems as any).isFallback;
+        (mappedData as any).fallbackSource = (realItems as any).fallbackSource;
         return mappedData;
       } else {
         console.warn("[KIS-US-DEBUG] fetchUsNewHigh: Realtime fetch succeeded but returned 0 items.");
@@ -726,7 +769,10 @@ export async function fetchUsNewHigh(): Promise<NewHighItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) {
         console.info(`[KIS-US-DEBUG] fetchUsNewHigh: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
-        return cacheRecord[0].data as NewHighItem[];
+        const cachedData = cacheRecord[0].data as NewHighItem[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
       }
       console.warn(`[KIS-US-DEBUG] fetchUsNewHigh empty return: DB cache key '${cacheKey}' is empty.`);
     } else {
@@ -768,7 +814,10 @@ export async function fetchUsBidAskRatio(): Promise<BidAskRatioItem[]> {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
         if (cacheRecord.length > 0) {
           console.info(`[KIS-US-DEBUG] fetchUsBidAskRatio: Successfully restored ${(cacheRecord[0].data as any[]).length} items from DB cache.`);
-          return cacheRecord[0].data as BidAskRatioItem[];
+          const cachedData = cacheRecord[0].data as BidAskRatioItem[];
+          (cachedData as any).isFallback = true;
+          (cachedData as any).fallbackSource = "db";
+          return cachedData;
         }
         console.warn(`[KIS-US-DEBUG] fetchUsBidAskRatio empty return: Credentials missing and DB cache '${cacheKey}' is empty.`);
       } else {
@@ -816,6 +865,8 @@ export async function fetchUsBidAskRatio(): Promise<BidAskRatioItem[]> {
         }
 
         console.info(`[KIS-US-DEBUG] fetchUsBidAskRatio: Successfully fetched ${mappedData.length} items in realtime.`);
+        (mappedData as any).isFallback = (realItems as any).isFallback;
+        (mappedData as any).fallbackSource = (realItems as any).fallbackSource;
         return mappedData;
       } else {
         console.warn("[KIS-US-DEBUG] fetchUsBidAskRatio: Realtime fetch succeeded but returned 0 items.");
@@ -833,7 +884,10 @@ export async function fetchUsBidAskRatio(): Promise<BidAskRatioItem[]> {
       const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
       if (cacheRecord.length > 0) {
         console.info(`[KIS-US-DEBUG] fetchUsBidAskRatio: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
-        return cacheRecord[0].data as BidAskRatioItem[];
+        const cachedData = cacheRecord[0].data as BidAskRatioItem[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
       }
       console.warn(`[KIS-US-DEBUG] fetchUsBidAskRatio empty return: DB cache key '${cacheKey}' is empty.`);
     } else {
@@ -845,4 +899,175 @@ export async function fetchUsBidAskRatio(): Promise<BidAskRatioItem[]> {
 
   console.warn("[KIS-US-DEBUG] fetchUsBidAskRatio empty return: End of function reached.");
   return [];
+}
+
+export interface TopRisingStockItem {
+  rank: number;
+  company: string;
+  code: string;
+  price: string;
+  changeRate: string;
+}
+
+function filterMockUsRisingStocks(items: TopRisingStockItem[]): TopRisingStockItem[] {
+  if (!items) return [];
+  return items.filter((r) => {
+    const company = (r.company || "").toLowerCase();
+    const code = r.code || "";
+    if (company.includes("시뮬레이션") || 
+        company.includes("mock") || 
+        company.includes("상승 종목") || 
+        company.includes("테스트") ||
+        code.startsWith("00000") || 
+        code.startsWith("90000")) {
+      return false;
+    }
+    return true;
+  });
+}
+
+export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
+  const offset = getDynamicOffset(7);
+
+  if (process.env.NODE_ENV === "test") {
+    return Array.from({ length: 10 }, (_, i) => {
+      const baseRate = 29.5 - i * 2.1;
+      const changeRate = `+${Math.max(1.0, baseRate + offset * 0.1).toFixed(2)}%`;
+      return {
+        rank: i + 1,
+        company: `US Rising Stock ${String.fromCharCode(65 + i)}`,
+        code: `90000${i}`,
+        price: `$${(250 - i * 15 + offset * 1.5).toFixed(2)}`,
+        changeRate,
+      };
+    });
+  }
+
+  const cacheKey = "top_rising_stocks";
+
+  if (!KIS_APPKEY || !KIS_APPSECRET) {
+    console.warn(`[KIS-US-DEBUG] fetchTopRisingStocks: API credentials missing. Attempting DB Cache restore.`);
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
+        if (cacheRecord.length > 0) {
+          const filtered = filterMockUsRisingStocks(cacheRecord[0].data as TopRisingStockItem[]);
+          console.info(`[KIS-US-DEBUG] fetchTopRisingStocks: Successfully restored ${filtered.length} items from DB cache.`);
+          const result = filtered;
+          (result as any).isFallback = true;
+          (result as any).fallbackSource = "db";
+          return result;
+        }
+      }
+    } catch (dbErr: any) {
+      console.error("[KIS-US-DEBUG] fetchTopRisingStocks empty return: API credentials missing and DB cache read crashed:", dbErr.message);
+    }
+    return [];
+  }
+
+  const token = await getAccessToken();
+
+  try {
+    if (token) {
+      const realItems = await fetchRealUsVolumeRank(token);
+      if (realItems && realItems.length > 0) {
+        const mappedData = realItems.slice(0, 10).map((item, i) => {
+          const priceVal = parseFloat(item.last) || 0.0;
+          const rateVal = parseFloat(item.rate) || 0.0;
+          const isUp = rateVal >= 0;
+
+          return {
+            rank: i + 1,
+            company: item.name,
+            code: item.symb,
+            price: `$${priceVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+            changeRate: `${isUp ? "+" : ""}${rateVal.toFixed(2)}%`,
+          };
+        });
+
+        try {
+          const db = getDb();
+          if (db) {
+            await db.insert(kisCache)
+              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
+              .onConflictDoUpdate({
+                target: kisCache.key,
+                set: { data: mappedData, updatedAt: new Date() }
+              });
+          }
+        } catch (dbWriteErr: any) {
+          console.error(`[KIS-US-DEBUG] fetchTopRisingStocks: Failed to write ${cacheKey} to DB Cache:`, dbWriteErr.message);
+        }
+
+        const filtered = filterMockUsRisingStocks(mappedData);
+        console.info(`[KIS-US-DEBUG] fetchTopRisingStocks: Successfully fetched ${filtered.length} real-time items.`);
+        (filtered as any).isFallback = (realItems as any).isFallback;
+        (filtered as any).fallbackSource = (realItems as any).fallbackSource;
+        return filtered;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[KIS-US-DEBUG] fetchTopRisingStocks: Realtime fetch failed, falling back to DB cache:`, err.message || err);
+  }
+
+  try {
+    const db = getDb();
+    if (db) {
+      const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
+      if (cacheRecord.length > 0) {
+        console.info(`[KIS-US-DEBUG] fetchTopRisingStocks: Restored ${(cacheRecord[0].data as any[]).length} items from fallback DB cache.`);
+        const cachedData = cacheRecord[0].data as TopRisingStockItem[];
+        (cachedData as any).isFallback = true;
+        (cachedData as any).fallbackSource = "db";
+        return cachedData;
+      }
+    }
+  } catch (dbReadErr: any) {
+    console.error("[KIS-US-DEBUG] fetchTopRisingStocks empty return: DB cache read failed:", dbReadErr.message);
+  }
+
+  return [];
+}
+
+export async function syncTopRisingStocks(): Promise<TopRisingStockItem[]> {
+  const db = getDb();
+  if (!db) return [];
+
+  const newTop10 = await fetchTopRisingStocks();
+  if (newTop10.length === 0) return [];
+
+  const oldTop10 = await db.select().from(topRisingStocks);
+  const oldCodes = new Set(oldTop10.map((s) => s.code));
+  const newCodes = new Set(newTop10.map((s) => s.code));
+
+  const obsoleteCodes = oldTop10.filter((s) => !newCodes.has(s.code)).map((s) => s.code);
+  if (obsoleteCodes.length > 0) {
+    await db.delete(topRisingStocks).where(inArray(topRisingStocks.code, obsoleteCodes));
+  }
+
+  const newlyAdded = newTop10.filter((s) => !oldCodes.has(s.code));
+  if (newlyAdded.length > 0) {
+    await db.insert(topRisingStocks).values(
+      newlyAdded.map((s) => ({
+        code: s.code,
+        company: s.company,
+        changeRate: s.changeRate,
+        price: s.price,
+        addedAt: new Date(),
+      }))
+    );
+  }
+
+  const existing = newTop10.filter((s) => oldCodes.has(s.code));
+  for (const s of existing) {
+    await db.update(topRisingStocks)
+      .set({
+        price: s.price,
+        changeRate: s.changeRate,
+      })
+      .where(eq(topRisingStocks.code, s.code));
+  }
+
+  return newlyAdded;
 }

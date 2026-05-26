@@ -113,6 +113,9 @@ export async function GET() {
     if (sortedRecords.length === 0) {
       headers.set("x-debug-status", "empty");
       headers.set("x-debug-reason", debugReason);
+    } else if (debugReason.includes("restored") || debugReason.includes("fallback") || debugReason.includes("crashed")) {
+      headers.set("x-debug-status", "fallback");
+      headers.set("x-debug-reason", debugReason);
     } else {
       headers.set("x-debug-status", "success");
       headers.set("x-debug-reason", "Data successfully loaded and filtered.");
