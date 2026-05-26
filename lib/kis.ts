@@ -76,7 +76,13 @@ let tokenExpiresAt: number = 0; // 타임스탬프 (ms)
 export async function getAccessToken(): Promise<string | null> {
   if (!KIS_APPKEY || !KIS_APPSECRET) return null;
 
-  // 1. 데이터베이스(Supabase) 기반 공유 캐시 우선 조회 (서버리스 컨테이너 간 토큰 공유)
+  // 1. 인메모리 캐시 우선 조회 (동일 프로세스 내 중복 조회 방지 및 성능 극대화)
+  const now = Date.now();
+  if (cachedToken && now < tokenExpiresAt - 5 * 60 * 1000) {
+    return cachedToken;
+  }
+
+  // 2. 데이터베이스(Supabase) 기반 공유 캐시 조회 (서버리스 컨테이너 간 토큰 공유)
   try {
     const db = getDb();
     if (db) {
@@ -93,17 +99,20 @@ export async function getAccessToken(): Promise<string | null> {
         const expiresAt = new Date(row.expiresAt).getTime();
         // 만료 5분 전 여유를 두고 재사용 결정
         if (expiresAt > Date.now() + 5 * 60 * 1000) {
+          // 인메모리 캐시 동기화
+          cachedToken = row.accessToken;
+          tokenExpiresAt = expiresAt;
           return row.accessToken;
         }
       }
     }
-  } catch (dbErr) {
-    // DATABASE_URL이 없거나 테스트 실행 중일 때는 인메모리 폴백 캐시 조회
-    console.warn("[KIS] DB token cache failed, falling back to memory:", dbErr);
-    const now = Date.now();
-    if (cachedToken && now < tokenExpiresAt) {
-      return cachedToken;
-    }
+  } catch (dbErr: any) {
+    console.warn("[KIS] DB token cache read failed, using memory fallback if available:", dbErr.message || dbErr);
+  }
+
+  // DB 읽기 실패 또는 DB에 캐시된 토큰이 없을 때, 인메모리 백업 캐시 최종 재확인
+  if (cachedToken && now < tokenExpiresAt - 5 * 60 * 1000) {
+    return cachedToken;
   }
 
   // 2. 캐시 만료 또는 조회 불가 시 KIS API 정식 요청 실행 (오직 실전투자용)
