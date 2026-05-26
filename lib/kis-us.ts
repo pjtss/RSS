@@ -179,7 +179,7 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
               };
             })
             // 상승률 내림차순 정렬 (day_gainers이지만 명시적으로 정렬)
-            .sort((a, b) => parseFloat(b.rate) - parseFloat(a.rate));
+            .sort((a: KisUsOutput, b: KisUsOutput) => parseFloat(b.rate) - parseFloat(a.rate));
           (yfResult as any).isFallback = true;
           (yfResult as any).fallbackSource = "yahoo_day_gainers";
           (yfResult as any).kisError = kisErrMsg;
