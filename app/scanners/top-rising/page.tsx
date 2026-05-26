@@ -64,6 +64,9 @@ export default function TopRisingPage() {
       }
       const data = await res.json();
       console.info("⚡ [KIS-DEBUG-CLIENT] 상승률 동기화 완료 응답 수신:", data);
+      if ((data as any)?.debug?.kisUsLogs) {
+        console.log("[KIS-US-LOGS]", (data as any).debug.kisUsLogs);
+      }
       if (data.success) {
         await fetchStocks();
       } else {

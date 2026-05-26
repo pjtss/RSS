@@ -7,6 +7,10 @@ type KisUsDebugEntry = {
 
 const MAX_ENTRIES = 200;
 
+import { AsyncLocalStorage } from "node:async_hooks";
+
+const captureStore = new AsyncLocalStorage<KisUsDebugEntry[]>();
+
 function maskSecret(value: string | undefined) {
   if (!value) return value;
   if (value.length <= 8) return "[MASKED]";
@@ -41,6 +45,9 @@ export function pushKisUsDebugLog(tag: string, data: any) {
   if (store.entries.length > MAX_ENTRIES) {
     store.entries.splice(0, store.entries.length - MAX_ENTRIES);
   }
+
+  const capture = captureStore.getStore();
+  if (capture) capture.push(entry);
 }
 
 export function getKisUsDebugLogs(sinceId?: number) {
@@ -55,4 +62,10 @@ export function buildKisUsRequestDebug(method: string, url: string, headers: Rec
     url,
     headers: sanitizeHeaders(headers),
   };
+}
+
+export async function runWithKisUsDebugCapture<T>(fn: () => Promise<T>): Promise<{ result: T; logs: KisUsDebugEntry[] }> {
+  const logs: KisUsDebugEntry[] = [];
+  const result = await captureStore.run(logs, fn);
+  return { result, logs };
 }

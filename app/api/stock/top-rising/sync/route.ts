@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { syncTopRisingStocks, fetchTopRisingStocks } from "@/lib/kis-us";
 import { sendPushAlerts } from "@/lib/push";
 import { clearTokenCache } from "@/lib/kis";
+import { runWithKisUsDebugCapture } from "@/lib/kis-us-debug";
 import type { AlertItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +16,13 @@ export async function GET() {
     await clearTokenCache();
 
     // 실시간 fetch를 직접 진단하기 위한 debug
-    const rawTop10 = await fetchTopRisingStocks();
-    const newlyAdded = await syncTopRisingStocks();
+    const captured = await runWithKisUsDebugCapture(async () => {
+      const rawTop10 = await fetchTopRisingStocks();
+      const newlyAdded = await syncTopRisingStocks();
+      return { rawTop10, newlyAdded };
+    });
+    const rawTop10 = captured.result.rawTop10;
+    const newlyAdded = captured.result.newlyAdded;
     let sentCount = 0;
 
     if (newlyAdded && newlyAdded.length > 0) {
@@ -44,6 +50,7 @@ export async function GET() {
         fallbackSource: (rawTop10 as any).fallbackSource ?? "kis",
         kisError: (rawTop10 as any).kisError ?? null,
         rawTop10,
+        kisUsLogs: captured.logs,
         nodeEnv: process.env.NODE_ENV,
       },
       newlyAdded,
