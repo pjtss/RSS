@@ -5,11 +5,12 @@ import { PageNavigation } from "@/components/page-navigation";
 import styles from "./page.module.css";
 
 interface StockIntensityItem {
-  code: string;
   company: string;
   intensity: number;
   price: string;
   changeRate: string;
+  volume: string;
+  tradingValue: string;
   addedAt: string;
 }
 
@@ -196,10 +197,11 @@ export default function TradingIntensityScannerPage() {
                 <tr>
                   <th>순위</th>
                   <th>종목명</th>
-                  <th>코드</th>
                   <th>체결강도</th>
                   <th>현재가</th>
                   <th>등락률</th>
+                  <th>누적거래량</th>
+                  <th>누적거래대금</th>
                   <th>DB 진입시각 (서울)</th>
                 </tr>
               </thead>
@@ -208,19 +210,20 @@ export default function TradingIntensityScannerPage() {
                   const rateNum = parseFloat(stock.changeRate?.replace(/[+%]/g, "")) || 0;
                   const isUp = rateNum >= 0;
                   return (
-                    <tr key={stock.code} className={styles.row}>
+                    <tr key={stock.company} className={styles.row}>
                       <td className={styles.rankCell}>
                         <span className={`${styles.rankBadge} ${i < 3 ? styles.topThree : ""}`}>
                           {i + 1}
                         </span>
                       </td>
                       <td className={styles.companyCell}>{stock.company}</td>
-                      <td className={styles.codeCell}>{stock.code}</td>
                       <td className={styles.intensityCell}>{stock.intensity}%</td>
                       <td className={styles.priceCell}>{stock.price}원</td>
                       <td className={`${styles.rateCell} ${isUp ? styles.up : styles.down}`}>
                         {stock.changeRate}
                       </td>
+                      <td className={styles.volumeCell}>{stock.volume}</td>
+                      <td className={styles.tradingValueCell}>{stock.tradingValue}</td>
                       <td className={styles.timeCell}>{formatTime(stock.addedAt)}</td>
                     </tr>
                   );

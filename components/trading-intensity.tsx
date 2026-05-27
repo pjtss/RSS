@@ -36,7 +36,7 @@ export function TradingIntensity() {
       <h3 className={styles.title}>실시간 체결강도 TOP 10</h3>
       <div className={styles.list}>
         {items.slice(0, 10).map((item) => (
-          <div key={item.code} className={styles.item}>
+          <div key={item.company} className={styles.item}>
             <span className={styles.rank}>{item.rank}</span>
             <div className={styles.info}>
               <span className={styles.name}>{item.company}</span>
@@ -46,6 +46,9 @@ export function TradingIntensity() {
               <span className={styles.price}>{item.price}</span>
               <span className={item.changeRate?.startsWith("+") ? styles.up : styles.down}>
                 {item.changeRate}
+              </span>
+              <span className={styles.volume} style={{ fontSize: "0.75rem", color: "#64748b", display: "block" }}>
+                {item.tradingValue} / {item.volume}
               </span>
             </div>
             <div className={styles.barWrap}>

@@ -1,11 +1,11 @@
 export interface StockIntensity {
   rank: number;
   company: string;
-  code: string;
   intensity: number;
   price: string;
-  change: string;
   changeRate: string;
+  volume: string;
+  tradingValue: string;
 }
 
 export interface VolumeSpikeItem {
@@ -373,11 +373,11 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
           return {
             rank: 0,
             company: companyName,
-            code: item.mksc_shrn_iscd,
             intensity,
             price: rawPrice.toLocaleString(),
-            change: `${isUp ? "+" : "-"}${Math.abs(rawVrss).toLocaleString()}`,
             changeRate: `${isUp ? "+" : ""}${rate.toFixed(2)}%`,
+            volume: `${parseInt(item.acml_vol || "0", 10).toLocaleString()}주`,
+            tradingValue: `${Math.round(parseInt(item.acml_tr_pbmn || "0", 10) / 100000000).toLocaleString()}억`,
           };
         });
 
