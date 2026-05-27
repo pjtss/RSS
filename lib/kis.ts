@@ -207,7 +207,8 @@ function getDynamicOffset(seed: number): number {
 }
 
 interface KisOutput {
-  hts_kor_shr_nlen: string; // 종목명
+  hts_kor_shr_nlen?: string; // 종목명 (일부 API)
+  hts_kor_isnm?: string; // 종목명 (거래량순위 등)
   mksc_shrn_iscd: string; // 종목코드
   stck_prpr: string; // 현재가
   prdy_vrss: string; // 전일대비
@@ -361,9 +362,11 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
           const rawIntensity = parseFloat(item.lsty_chts_rat || "") || 0;
           const intensity = rawIntensity > 0 ? Math.round(rawIntensity) : Math.max(50, Math.round(160 - i * 6));
 
+          const companyName = (item.hts_kor_isnm || item.hts_kor_shr_nlen || "").trim();
+
           return {
             rank: 0,
-            company: item.hts_kor_shr_nlen.trim(),
+            company: companyName,
             code: item.mksc_shrn_iscd,
             intensity,
             price: rawPrice.toLocaleString(),
