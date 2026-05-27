@@ -409,7 +409,27 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
     return empty;
   }
 
-  // D-fallback (token=null 경우) -> 장외/API키 없음 -> DB 캐시 복원
+
+  // D-fallback: token=null인 경우 (API 키 없음 or 토큰 발급 실패) → DB kisCache 복원 시도
+  try {
+    const db = getDb();
+    if (db) {
+      const cacheRecord = await db.select({ data: kisCache.data })
+        .from(kisCache)
+        .where(eq(kisCache.key, cacheKey))
+        .limit(1);
+      if (cacheRecord.length > 0) {
+        const cached = cacheRecord[0].data as StockIntensity[];
+        (cached as any).isFallback = true;
+        (cached as any).fallbackSource = "db";
+        return cached;
+      }
+    }
+  } catch (dbReadErr) {
+    console.error(`[KIS] Failed to read ${cacheKey} from DB cache (token-null path):`, dbReadErr);
+  }
+
+  return [];
 }
 
 // 2. 거래대금/거래량 폭발 스캐너
