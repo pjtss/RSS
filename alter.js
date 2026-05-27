@@ -5,10 +5,17 @@ const client = new Client({ connectionString: env, ssl: { rejectUnauthorized: fa
 
 async function run() {
   await client.connect();
-  await client.query('ALTER TABLE push_subscriptions DROP COLUMN IF EXISTS sec_enabled, DROP COLUMN IF EXISTS only_validated;');
-  await client.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS intensity_enabled BOOLEAN NOT NULL DEFAULT true;');
-  await client.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS rising_enabled BOOLEAN NOT NULL DEFAULT true;');
-  console.log('Done altering database');
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS "us_intensity_stocks" (
+      "code" text PRIMARY KEY NOT NULL,
+      "company" text NOT NULL,
+      "intensity" integer NOT NULL,
+      "price" text NOT NULL,
+      "change_rate" text NOT NULL,
+      "added_at" timestamp with time zone DEFAULT now() NOT NULL
+    );
+  `);
+  console.log('Done creating table us_intensity_stocks');
   await client.end();
 }
 run().catch(console.error);

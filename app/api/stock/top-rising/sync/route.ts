@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { syncTopRisingStocks, fetchTopRisingStocks } from "@/lib/kis-us";
 import { sendPushAlerts } from "@/lib/push";
-import { clearTokenCache } from "@/lib/kis";
 import { runWithKisUsDebugCapture } from "@/lib/kis-us-debug";
 import type { AlertItem } from "@/lib/types";
 

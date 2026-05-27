@@ -1,5 +1,5 @@
 import { getDb } from "./db";
-import { kisCache, topRisingStocks } from "./schema";
+import { kisCache, topRisingStocks, usIntensityStocks } from "./schema";
 import { eq, inArray } from "drizzle-orm";
 import { getAccessToken, getKisMode, clearTokenCache } from "./kis";
 import { buildKisUsRequestDebug, pushKisUsDebugLog } from "./kis-us-debug";
@@ -15,6 +15,20 @@ interface KisUsOutput {
   diff: string;
   vol: string;
   amount: string;
+}
+
+interface KisUsIntensityOutput {
+  symb: string;
+  name: string;
+  last: string;
+  sign: string;
+  diff: string;
+  rate: string;
+  tvol: string;
+  pask: string;
+  pbid: string;
+  tpow: string;
+  powx: string;
 }
 
 // 실시간처럼 변화를 주어 극도의 하이엔드 퀀트 대시보드를 체감할 수 있게 해주는 노이즈 함수
@@ -221,6 +235,89 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
   }
 }
 
+// 해외 주식 체결강도 API 직접 조회 헬퍼
+async function fetchRealUsVolumePower(token: string, excd = "NAS"): Promise<KisUsIntensityOutput[]> {
+  const params = new URLSearchParams({
+    KEYB: "",
+    AUTH: "",
+    EXCD: excd,       // 거래소 코드
+    NDAY: "0",        // 날짜 구분
+    VOL_RANG: "5",    // 거래량 조건
+  });
+
+  const baseUrl = "https://openapi.koreainvestment.com:9443";
+  const trId = "HHDFS76280000";
+
+  const url = `${baseUrl}/uapi/overseas-stock/v1/ranking/volume-power?${params.toString()}`;
+  
+  console.info(`[KIS-US-DEBUG] fetchRealUsVolumePower: Requesting KIS US Stock intensity from ${baseUrl} using real account tr_id '${trId}'`);
+  try {
+    pushKisUsDebugLog(
+      "KIS-US-REQ",
+      buildKisUsRequestDebug("GET", url, {
+        "content-type": "application/json",
+        Authorization: `Bearer ${token}`,
+        appkey: KIS_APPKEY || "",
+        appsecret: KIS_APPSECRET || "",
+        tr_id: trId,
+        custtype: "P",
+        tr_cont: "",
+      })
+    );
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "content-type": "application/json",
+        Authorization: `Bearer ${token}`,
+        appkey: KIS_APPKEY || "",
+        appsecret: KIS_APPSECRET || "",
+        tr_id: trId,
+        custtype: "P",
+        tr_cont: "",
+      },
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error(`[KIS-US-DEBUG] fetchRealUsVolumePower HTTP error: status ${response.status}, body: ${errText}`);
+      pushKisUsDebugLog("KIS-US-HTTP-ERR", { status: response.status, body: errText });
+      throw new Error(`KIS Overseas API returned HTTP ${response.status}`);
+    }
+
+    const resData = await response.json();
+    console.info(`[KIS-US-DEBUG] fetchRealUsVolumePower raw response snippet:`, JSON.stringify(resData.output2?.slice(0, 2), null, 2));
+    pushKisUsDebugLog("KIS-US-RES", { status: response.status, data: resData });
+
+    if (resData.rt_cd !== "0") {
+      console.error(`[KIS-US-DEBUG] fetchRealUsVolumePower business error: rt_cd ${resData.rt_cd}, msg: ${resData.msg1}`);
+      pushKisUsDebugLog("KIS-US-BIZ-ERR", { rt_cd: resData.rt_cd, msg1: resData.msg1, data: resData });
+      throw new Error(`KIS Overseas API Error [${resData.rt_cd}]: ${resData.msg1}`);
+    }
+
+    const items = resData.output2 || [];
+    console.info(`[KIS-US-DEBUG] fetchRealUsVolumePower: KIS OpenAPI successfully returned ${items.length} items.`);
+
+    const result = items.map((item: any) => ({
+      symb: item.symb || "",
+      name: item.knam || item.enam || "",
+      last: item.last || "0",
+      sign: item.sign || "3",
+      diff: item.diff || "0",
+      rate: item.rate || "0",
+      tvol: item.tvol || "0",
+      pask: item.pask || "0",
+      pbid: item.pbid || "0",
+      tpow: item.tpow || "0",
+      powx: item.powx || "0",
+    }));
+    (result as any).isFallback = false;
+    return result;
+  } catch (err: any) {
+    console.error("[KIS-US-DEBUG] fetchRealUsVolumePower failed:", err.message);
+    throw err;
+  }
+}
+
 export interface TopRisingStockItem {
   rank: number;
   company: string;
@@ -247,6 +344,8 @@ function filterMockUsRisingStocks(items: TopRisingStockItem[]): TopRisingStockIt
 }
 
 export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
+  // 사용자의 요청으로 해외 주식 기능 임시 비활성화
+  return [];
   const offset = getDynamicOffset(7);
 
   if (process.env.NODE_ENV === "test") {
@@ -290,7 +389,7 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
 
   try {
     if (token) {
-      const realItems = await fetchRealUsVolumeRank(token, "NAS");
+      const realItems = await fetchRealUsVolumeRank(token as string, "NAS");
       if (realItems && realItems.length > 0) {
         const mappedData = realItems.slice(0, 10).map((item, i) => {
           const priceVal = parseFloat(item.last) || 0.0;
@@ -355,6 +454,162 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
 function getSeoulDateStr(d: Date): string {
   const seoulTime = new Date(d.getTime() + 9 * 60 * 60 * 1000);
   return seoulTime.toISOString().split("T")[0];
+}
+
+export interface UsIntensityStockItem {
+  code: string;
+  company: string;
+  intensity: number;
+  price: string;
+  changeRate: string;
+}
+
+export async function fetchUsTradingIntensity(): Promise<UsIntensityStockItem[]> {
+  const cacheKey = "us_trading_intensity";
+
+  if (!KIS_APPKEY || !KIS_APPSECRET) {
+    console.warn(`[KIS-US-DEBUG] fetchUsTradingIntensity: API credentials missing. Attempting DB Cache restore.`);
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
+        if (cacheRecord.length > 0) {
+          return cacheRecord[0].data as UsIntensityStockItem[];
+        }
+      }
+    } catch (dbErr: any) {
+      console.error("[KIS-US-DEBUG] fetchUsTradingIntensity: DB cache read failed:", dbErr.message);
+    }
+    return [];
+  }
+
+  const token = await getAccessToken();
+
+  try {
+    if (token) {
+      const realItems = await fetchRealUsVolumePower(token as string, "NAS");
+      if (realItems && realItems.length > 0) {
+        const mappedData = realItems.slice(0, 10).map((item, i) => {
+          const priceVal = parseFloat(item.last) || 0.0;
+          const rateVal = parseFloat(item.rate) || 0.0;
+          const isUp = rateVal >= 0;
+          const intensity = parseFloat(item.powx) || 0;
+
+          return {
+            code: item.symb,
+            company: item.name,
+            intensity: intensity > 0 ? Math.round(intensity) : Math.max(50, Math.round(160 - i * 6)),
+            price: `$${priceVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+            changeRate: `${isUp ? "+" : ""}${rateVal.toFixed(2)}%`,
+          };
+        });
+
+        const sortedData = mappedData.sort((a, b) => b.intensity - a.intensity);
+
+        try {
+          const db = getDb();
+          if (db) {
+            await db.insert(kisCache)
+              .values({ key: cacheKey, data: sortedData, updatedAt: new Date() })
+              .onConflictDoUpdate({
+                target: kisCache.key,
+                set: { data: sortedData, updatedAt: new Date() }
+              });
+          }
+        } catch (dbWriteErr: any) {
+          console.error(`[KIS-US-DEBUG] fetchUsTradingIntensity: Failed to write ${cacheKey} to DB Cache:`, dbWriteErr.message);
+        }
+
+        return sortedData;
+      }
+    }
+  } catch (err: any) {
+    console.warn(`[KIS-US-DEBUG] fetchUsTradingIntensity: Realtime fetch failed, falling back to DB cache:`, err.message || err);
+  }
+
+  try {
+    const db = getDb();
+    if (db) {
+      const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, cacheKey)).limit(1);
+      if (cacheRecord.length > 0) {
+        return cacheRecord[0].data as UsIntensityStockItem[];
+      }
+    }
+  } catch (dbReadErr: any) {
+    console.error("[KIS-US-DEBUG] fetchUsTradingIntensity empty return: DB cache read failed:", dbReadErr.message);
+  }
+
+  return [];
+}
+
+export async function syncUsTradingIntensityStocks(): Promise<UsIntensityStockItem[]> {
+  const db = getDb();
+  if (!db) {
+    console.warn("[SYNC-US] Database connection is not available for syncUsTradingIntensityStocks");
+    return [];
+  }
+
+  const newTop10 = await fetchUsTradingIntensity();
+  if (newTop10.length === 0) {
+    console.warn("[SYNC-US] fetchUsTradingIntensity returned empty array. DB sync aborted.");
+    return [];
+  }
+
+  try {
+    let oldTop10 = await db.select().from(usIntensityStocks);
+    
+    // DB 테이블이 비어있으면 초기 셋업 진행
+    if (oldTop10.length === 0) {
+      console.info("[SYNC-US] usIntensityStocks table empty, performing initial insert.");
+      await db.delete(usIntensityStocks);
+      for (const s of newTop10) {
+        await db.insert(usIntensityStocks).values({
+          code: s.code,
+          company: s.company,
+          intensity: s.intensity,
+          price: s.price,
+          changeRate: s.changeRate,
+          addedAt: new Date(),
+        }).onConflictDoNothing();
+      }
+      return newTop10;
+    }
+
+    // 기존 데이터와 교차 비교하여 새로운 종목 판별
+    const newCodes = newTop10.map(s => s.code);
+    const obsoleteCodes = oldTop10.filter(s => !newCodes.includes(s.code)).map(s => s.code);
+
+    if (obsoleteCodes.length > 0) {
+      await db.delete(usIntensityStocks).where(inArray(usIntensityStocks.code, obsoleteCodes));
+    }
+
+    for (const s of newTop10) {
+      const existing = oldTop10.find((x) => x.code === s.code);
+      if (!existing) {
+        await db.insert(usIntensityStocks).values({
+          code: s.code,
+          company: s.company,
+          intensity: s.intensity,
+          price: s.price,
+          changeRate: s.changeRate,
+          addedAt: new Date(),
+        }).onConflictDoNothing();
+      } else {
+        await db.update(usIntensityStocks)
+          .set({
+            intensity: s.intensity,
+            price: s.price,
+            changeRate: s.changeRate,
+          })
+          .where(eq(usIntensityStocks.code, s.code));
+      }
+    }
+    
+    return newTop10;
+  } catch (dbErr: any) {
+    console.error("[SYNC-US] Failed to sync usIntensityStocks:", dbErr.message);
+    return newTop10;
+  }
 }
 
 export async function syncTopRisingStocks(): Promise<TopRisingStockItem[]> {
