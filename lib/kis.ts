@@ -216,13 +216,15 @@ function getDynamicOffset(seed: number): number {
 interface KisOutput {
   hts_kor_shr_nlen?: string; // 종목명 (일부 API)
   hts_kor_isnm?: string; // 종목명 (거래량순위 등)
-  mksc_shrn_iscd: string; // 종목코드
+  mksc_shrn_iscd?: string; // 종목코드
+  stck_shrn_iscd?: string; // 주식 단축 종목코드 (volume-power)
   stck_prpr: string; // 현재가
   prdy_vrss: string; // 전일대비
   prdy_ctrt: string; // 전일대비율
   acml_vol: string; // 누적거래량
-  acml_tr_pbmn: string; // 누적거래대금
+  acml_tr_pbmn?: string; // 누적거래대금
   lsty_chts_rat?: string; // 체결강도
+  tday_rltv?: string; // 당일 체결강도 (volume-power)
 }
 
 // 한국투자증권 실시간 거래량/거래대금 순위 OpenAPI 직접 조회 헬퍼
@@ -433,21 +435,27 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
           const rawVrss = parseInt(item.prdy_vrss, 10) || 0;
           const rate = parseFloat(item.prdy_ctrt) || 0.0;
           const isUp = rate >= 0;
-          const rawIntensity = parseFloat(item.lsty_chts_rat || "") || 0;
+          
+          const rawIntensity = parseFloat(item.tday_rltv || item.lsty_chts_rat || "") || 0;
           const intensity = rawIntensity > 0 ? Math.round(rawIntensity) : Math.max(50, Math.round(160 - i * 6));
 
           const companyName = (item.hts_kor_isnm || item.hts_kor_shr_nlen || "").trim();
+          const code = item.stck_shrn_iscd || item.mksc_shrn_iscd || "";
+          
+          const volume = parseInt(item.acml_vol || "0", 10);
+          const rawTradingValue = item.acml_tr_pbmn ? parseInt(item.acml_tr_pbmn, 10) : (rawPrice * volume);
+          const tradingValueStr = `${Math.round(rawTradingValue / 100000000).toLocaleString()}억`;
 
           return {
             rank: 0,
             company: companyName,
-            code: item.mksc_shrn_iscd,
+            code,
             intensity,
             price: rawPrice.toLocaleString(),
             change: `${isUp ? "+" : "-"}${Math.abs(rawVrss).toLocaleString()}`,
             changeRate: `${isUp ? "+" : ""}${rate.toFixed(2)}%`,
-            volume: `${parseInt(item.acml_vol || "0", 10).toLocaleString()}주`,
-            tradingValue: `${Math.round(parseInt(item.acml_tr_pbmn || "0", 10) / 100000000).toLocaleString()}억`,
+            volume: `${volume.toLocaleString()}주`,
+            tradingValue: tradingValueStr,
           };
         });
 
