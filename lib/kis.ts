@@ -283,7 +283,7 @@ async function fetchRealVolumeRank(token: string): Promise<KisOutput[]> {
     return await doFetch(token);
   } catch (err: any) {
     const kisErrMsg = err.message || String(err);
-    const isAuthError = kisErrMsg.includes("AUTH") || kisErrMsg.includes("401");
+    const isAuthError = kisErrMsg.includes("AUTH") || kisErrMsg.includes("401") || kisErrMsg.includes("EGW00123") || kisErrMsg.includes("EGW00121") || kisErrMsg.includes("만료된") || kisErrMsg.includes("유효하지 않은");
 
     // AUTH 에러 감지 → DB 토큰 캐시 무효화 + 신규 토큰 재발급 후 한 번 더 재시도
     if (isAuthError) {
@@ -348,7 +348,7 @@ async function fetchRealVolumePower(token: string): Promise<KisOutput[]> {
     return await doFetch(token);
   } catch (err: any) {
     const kisErrMsg = err.message || String(err);
-    const isAuthError = kisErrMsg.includes("AUTH") || kisErrMsg.includes("401");
+    const isAuthError = kisErrMsg.includes("AUTH") || kisErrMsg.includes("401") || kisErrMsg.includes("EGW00123") || kisErrMsg.includes("EGW00121") || kisErrMsg.includes("만료된") || kisErrMsg.includes("유효하지 않은");
 
     if (isAuthError) {
       console.warn(`[KIS-DEBUG] fetchRealVolumePower AUTH error detected ('${kisErrMsg}'). Clearing token cache and retrying...`);
