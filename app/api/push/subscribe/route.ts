@@ -15,8 +15,8 @@ export async function POST(request: Request) {
       userAgent: request.headers.get("user-agent") ?? undefined,
       enabled: body.enabled ?? true,
       dartEnabled: body.dartEnabled ?? true,
-      secEnabled: body.secEnabled ?? true,
-      onlyValidated: body.onlyValidated ?? false,
+      intensityEnabled: body.intensityEnabled ?? true,
+      risingEnabled: body.risingEnabled ?? true,
     });
 
     const debug = await loadPushSubscriptionDebug(body.endpoint);
@@ -29,8 +29,8 @@ export async function POST(request: Request) {
       latestEndpoint: debug.latest?.endpoint ?? null,
       enabled: debug.currentDevice?.enabled ?? true,
       dartEnabled: debug.currentDevice?.dartEnabled ?? true,
-      secEnabled: debug.currentDevice?.secEnabled ?? true,
-      onlyValidated: debug.currentDevice?.onlyValidated ?? false,
+      intensityEnabled: debug.currentDevice?.intensityEnabled ?? true,
+      risingEnabled: debug.currentDevice?.risingEnabled ?? true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "푸시 구독 저장에 실패했습니다.";
@@ -48,8 +48,8 @@ export async function PATCH(request: Request) {
       auth: "",
       enabled: body.enabled ?? true,
       dartEnabled: body.dartEnabled ?? true,
-      secEnabled: body.secEnabled ?? true,
-      onlyValidated: body.onlyValidated ?? false,
+      intensityEnabled: body.intensityEnabled ?? true,
+      risingEnabled: body.risingEnabled ?? true,
     });
 
     const debug = await loadPushSubscriptionDebug(body.endpoint);
@@ -60,8 +60,8 @@ export async function PATCH(request: Request) {
       latestUpdatedAt: debug.latest?.updatedAt ?? null,
       enabled: debug.currentDevice?.enabled ?? true,
       dartEnabled: debug.currentDevice?.dartEnabled ?? true,
-      secEnabled: debug.currentDevice?.secEnabled ?? true,
-      onlyValidated: debug.currentDevice?.onlyValidated ?? false,
+      intensityEnabled: debug.currentDevice?.intensityEnabled ?? true,
+      risingEnabled: debug.currentDevice?.risingEnabled ?? true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "푸시 설정 저장에 실패했습니다.";
@@ -84,8 +84,8 @@ export async function GET(request: Request) {
       latestUserAgent: debug.latest?.userAgent ?? null,
       enabled: debug.currentDevice?.enabled ?? true,
       dartEnabled: debug.currentDevice?.dartEnabled ?? true,
-      secEnabled: debug.currentDevice?.secEnabled ?? true,
-      onlyValidated: debug.currentDevice?.onlyValidated ?? false,
+      intensityEnabled: debug.currentDevice?.intensityEnabled ?? true,
+      risingEnabled: debug.currentDevice?.risingEnabled ?? true,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "푸시 구독 상태 조회에 실패했습니다.";

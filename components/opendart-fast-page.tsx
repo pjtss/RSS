@@ -5,12 +5,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GLOBAL_POLLING_INTERVAL } from "@/lib/constants";
 import { marketLabel, sortByPublishedAtDesc } from "@/lib/utils";
 import type { OpenDartFastItem, OpenDartFastPayload } from "@/lib/opendart-fast";
-import type { VolumeSpikeItem, NetBuyingItem } from "@/lib/kis";
 import { PageNavigation } from "./page-navigation";
 import { KeywordManager } from "./keyword-manager";
 import { DisclosureDetailBadge } from "./disclosure-detail-badge";
 import { SectorMap } from "./sector-map";
-import { ProgramTradingTracker } from "./program-trading";
 import styles from "./opendart-fast-page.module.css";
 
 function sortItems(items: OpenDartFastItem[]) {
@@ -25,8 +23,6 @@ function sortItems(items: OpenDartFastItem[]) {
 
 export function OpenDartFastPage() {
   const [payload, setPayload] = useState<OpenDartFastPayload | null>(null);
-  const [volumeSpikes, setVolumeSpikes] = useState<VolumeSpikeItem[]>([]);
-  const [netBuyings, setNetBuyings] = useState<NetBuyingItem[]>([]);
   const [customKeywords, setCustomKeywords] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,10 +33,8 @@ export function OpenDartFastPage() {
 
     async function load() {
       try {
-        const [dartRes, volRes, netRes] = await Promise.all([
+        const [dartRes] = await Promise.all([
           fetch("/api/dart/opendart-fast", { cache: "no-store" }),
-          fetch("/api/stock/volume-spike", { cache: "no-store" }).catch(() => null),
-          fetch("/api/stock/net-buying", { cache: "no-store" }).catch(() => null),
         ]);
 
         if (!dartRes.ok) {
@@ -49,13 +43,8 @@ export function OpenDartFastPage() {
         }
 
         const dartData = (await dartRes.json()) as OpenDartFastPayload;
-        const volData = volRes?.ok ? ((await volRes.json()) as VolumeSpikeItem[]) : [];
-        const netData = netRes?.ok ? ((await netRes.json()) as NetBuyingItem[]) : [];
-
         if (!cancelled) {
           setPayload(dartData);
-          setVolumeSpikes(volData);
-          setNetBuyings(netData);
           setError(null);
           setLoading(false);
         }
@@ -151,8 +140,6 @@ export function OpenDartFastPage() {
         </div>
       </div>
 
-      <ProgramTradingTracker />
-
       <section className={styles.panel}>
         <div className={styles.panelHeader}>
           <div>
@@ -197,12 +184,6 @@ export function OpenDartFastPage() {
                       <td>
                         <div className={styles.corpInfo}>
                           <span className={styles.corpName}>{item.corpName}</span>
-                          {volumeSpikes.some((v) => v.code === item.stockCode) && (
-                            <span className={styles.volBadge}>🔥 거래대금 폭발</span>
-                          )}
-                          {netBuyings.some((n) => n.code === item.stockCode) && (
-                            <span className={styles.netBadge}>📈 수급 포착</span>
-                          )}
                         </div>
                       </td>
                       <td>{item.stockCode || "-"}</td>

@@ -20,7 +20,7 @@ declare global {
 type PushContextValue = {
   status: PushDebugStatus | null;
   enablePush: () => Promise<void>;
-  updatePreferences: (next: { enabled?: boolean; dartEnabled?: boolean; secEnabled?: boolean; onlyValidated?: boolean }) => Promise<void>;
+  updatePreferences: (next: { enabled?: boolean; dartEnabled?: boolean; intensityEnabled?: boolean; risingEnabled?: boolean }) => Promise<void>;
   refreshStatus: () => Promise<void>;
   enabling: boolean;
   saving: boolean;
@@ -71,8 +71,8 @@ export function PushProvider({ children }: { children?: ReactNode }) {
         latestUserAgent: data.latestUserAgent ?? undefined,
         enabled: data.enabled ?? true,
         dartEnabled: data.dartEnabled ?? true,
-        secEnabled: data.secEnabled ?? true,
-        onlyValidated: data.onlyValidated ?? false,
+        intensityEnabled: data.intensityEnabled ?? true,
+        risingEnabled: data.risingEnabled ?? true,
         error: undefined,
       };
 
@@ -164,7 +164,8 @@ export function PushProvider({ children }: { children?: ReactNode }) {
           ...subscription.toJSON(),
           enabled: true,
           dartEnabled: true,
-          secEnabled: true,
+          intensityEnabled: true,
+          risingEnabled: true,
         }),
       });
       const result = await response.json();
@@ -180,8 +181,8 @@ export function PushProvider({ children }: { children?: ReactNode }) {
         savedCount: result.savedCount ?? undefined,
         enabled: result.enabled ?? true,
         dartEnabled: result.dartEnabled ?? true,
-        secEnabled: result.secEnabled ?? true,
-        onlyValidated: result.onlyValidated ?? false,
+        intensityEnabled: result.intensityEnabled ?? true,
+        risingEnabled: result.risingEnabled ?? true,
         actionRequired: false,
       };
 
@@ -203,7 +204,7 @@ export function PushProvider({ children }: { children?: ReactNode }) {
     }
   }
 
-  async function updatePreferences(next: { enabled?: boolean; dartEnabled?: boolean; secEnabled?: boolean; onlyValidated?: boolean }) {
+  async function updatePreferences(next: { enabled?: boolean; dartEnabled?: boolean; intensityEnabled?: boolean; risingEnabled?: boolean }) {
     if (!status?.endpoint || saving) {
       return;
     }
@@ -220,8 +221,8 @@ export function PushProvider({ children }: { children?: ReactNode }) {
           endpoint: status.endpoint,
           enabled: next.enabled ?? status.enabled ?? true,
           dartEnabled: next.dartEnabled ?? status.dartEnabled ?? true,
-          secEnabled: next.secEnabled ?? status.secEnabled ?? true,
-          onlyValidated: next.onlyValidated ?? status.onlyValidated ?? false,
+          intensityEnabled: next.intensityEnabled ?? status.intensityEnabled ?? true,
+          risingEnabled: next.risingEnabled ?? status.risingEnabled ?? true,
         }),
       });
       const result = await response.json();
@@ -233,8 +234,8 @@ export function PushProvider({ children }: { children?: ReactNode }) {
         ...(status ?? {}),
         enabled: result.enabled ?? true,
         dartEnabled: result.dartEnabled ?? true,
-        secEnabled: result.secEnabled ?? true,
-        onlyValidated: result.onlyValidated ?? false,
+        intensityEnabled: result.intensityEnabled ?? true,
+        risingEnabled: result.risingEnabled ?? true,
         lastSaved: result.latestUpdatedAt ?? status.lastSaved,
       };
 

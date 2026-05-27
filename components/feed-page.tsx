@@ -6,14 +6,12 @@ import { formatTime, getJudgmentStatus, paginateItems, sortByPublishedAtDesc } f
 import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
 import { calculateMarketSentiment } from "@/lib/scoring";
 import { PageNavigation } from "./page-navigation";
-import { usePushDebug } from "./push-provider";
 import { getWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { MarketSentiment } from "./market-sentiment";
 import { SectorMap } from "./sector-map";
 import { CompanyTimeline } from "./company-timeline";
 import { TradingIntensity } from "./trading-intensity";
 import { ContractBadge } from "./contract-badge";
-import { ProgramTradingTracker } from "./program-trading";
 import styles from "./feed-page.module.css";
 
 type ViewMode = "latest" | "grouped";
@@ -212,11 +210,9 @@ export function FeedPage(props: FeedPageProps) {
   const [secData, setSecData] = useState<FeedPayload<SecItem> | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const [page, setPage] = useState(1);
-  const [pushTesting, setPushTesting] = useState(false);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
-  const { status: pushStatus, enablePush, updatePreferences, refreshStatus, enabling, saving } = usePushDebug();
 
   useEffect(() => {
     setWatchlist(getWatchlist());
@@ -320,97 +316,6 @@ export function FeedPage(props: FeedPageProps) {
     props.type === "dart" ? rawDartItems : rawSecItems
   );
 
-  async function handleEnablePush() {
-    try {
-      await enablePush();
-      await refreshStatus();
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "알림 활성화 실패");
-    }
-  }
-
-  async function handleToggleAll() {
-    try {
-      if (!pushStatus?.subscriptionExists) {
-        await handleEnablePush();
-        return;
-      }
-
-      const enabled = !(pushStatus.enabled ?? true);
-      await updatePreferences({
-        enabled,
-        dartEnabled: enabled ? (pushStatus.dartEnabled ?? true) : false,
-        secEnabled: enabled ? (pushStatus.secEnabled ?? true) : false,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "푸시 설정 변경 실패");
-    }
-  }
-
-  async function handleToggleSource(source: "dart" | "sec") {
-    try {
-      if (!pushStatus?.subscriptionExists) {
-        await handleEnablePush();
-        return;
-      }
-
-      if (source === "dart") {
-        const nextDart = !(pushStatus.dartEnabled ?? true);
-        await updatePreferences({
-          enabled: true,
-          dartEnabled: nextDart,
-          secEnabled: pushStatus.secEnabled ?? true,
-        });
-      } else {
-        const nextSec = !(pushStatus.secEnabled ?? true);
-        await updatePreferences({
-          enabled: true,
-          dartEnabled: pushStatus.dartEnabled ?? true,
-          secEnabled: nextSec,
-        });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "푸시 설정 변경 실패");
-    }
-  }
-
-  async function handleToggleValidated() {
-    try {
-      if (!pushStatus?.subscriptionExists) {
-        await handleEnablePush();
-        return;
-      }
-
-      const nextVal = !(pushStatus.onlyValidated ?? false);
-      await updatePreferences({
-        enabled: true,
-        dartEnabled: pushStatus.dartEnabled ?? true,
-        secEnabled: pushStatus.secEnabled ?? true,
-        onlyValidated: nextVal,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "푸시 설정 변경 실패");
-    }
-  }
-
-  async function handleTestPush() {
-    try {
-      setPushTesting(true);
-      const response = await fetch("/api/push/test", {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        throw new Error("테스트 푸시 전송 실패");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "테스트 푸시 전송 실패");
-    } finally {
-      setPushTesting(false);
-    }
-  }
-
   return (
     <main className={styles.page}>
       <PageNavigation current={props.type} />
@@ -433,55 +338,11 @@ export function FeedPage(props: FeedPageProps) {
           <span>표시 건수 {count}건</span>
           <span>페이지 {currentPage} / {totalPages}</span>
           <span>갱신 시각 {fetchedAt ? formatTime(fetchedAt) : "-"}</span>
-          <div className={styles.pushDebug}>
-            <span>푸시 지원: {pushStatus?.supported ? "예" : "아니오"}</span>
-            <span>권한: {pushStatus?.permission ?? "-"}</span>
-            <span>현재 기기 구독 존재: {pushStatus?.subscriptionExists ? "예" : "아니오"}</span>
-            <span>현재 기기 DB 저장: {pushStatus?.currentDeviceSaved ? "예" : "아니오"}</span>
-            <span>전체 푸시: {pushStatus?.enabled === false ? "꺼짐" : "켜짐"}</span>
-            <span>DART 푸시: {pushStatus?.dartEnabled === false ? "꺼짐" : "켜짐"}</span>
-            <span>SEC 푸시: {pushStatus?.secEnabled === false ? "꺼짐" : "켜짐"}</span>
-            <span>수급 매칭 푸시: {pushStatus?.onlyValidated === true ? "켜짐 🔥" : "꺼짐"}</span>
-            <span>저장된 구독 수: {pushStatus?.savedCount ?? 0}</span>
-            <span>최근 저장 시각: {pushStatus?.lastSaved ? formatTime(pushStatus.lastSaved) : "-"}</span>
-            <span>최근 User-Agent: {pushStatus?.latestUserAgent ?? "-"}</span>
-            <span>Endpoint: {pushStatus?.endpoint ? "있음" : "없음"}</span>
-            {pushStatus?.error ? <span>오류: {pushStatus.error}</span> : null}
-          </div>
-
-          <button
-            type="button"
-            className={styles.enableButton}
-            onClick={handleEnablePush}
-            disabled={enabling || !pushStatus?.supported}
-          >
-            {enabling ? "알림 활성화 중.." : "알림 권한/구독 활성화"}
-          </button>
-
-          <div className={styles.toggleRow}>
-            <button type="button" className={styles.toggleButton} onClick={handleToggleAll} disabled={saving}>
-              {pushStatus?.enabled === false ? "전체 푸시 켜기" : "전체 푸시 끄기"}
-            </button>
-            <button type="button" className={styles.toggleButton} onClick={() => handleToggleSource("dart")} disabled={saving}>
-              {pushStatus?.dartEnabled === false ? "DART 푸시 켜기" : "DART 푸시 끄기"}
-            </button>
-            <button type="button" className={styles.toggleButton} onClick={() => handleToggleSource("sec")} disabled={saving}>
-              {pushStatus?.secEnabled === false ? "SEC 푸시 켜기" : "SEC 푸시 끄기"}
-            </button>
-            <button type="button" className={styles.toggleButton} onClick={handleToggleValidated} disabled={saving}>
-              {pushStatus?.onlyValidated === true ? "수급 필터 끄기" : "수급 필터 켜기 🔥"}
-            </button>
-          </div>
-
-          <button type="button" className={styles.testButton} onClick={handleTestPush} disabled={pushTesting}>
-            {pushTesting ? "전송 중.." : "테스트 푸시 보내기"}
-          </button>
         </div>
         
         {props.type === "dart" && (
           <>
             <TradingIntensity />
-            <ProgramTradingTracker />
           </>
         )}
       </section>

@@ -56,8 +56,8 @@ export interface PushSubscriptionRecord {
   userAgent?: string;
   enabled?: boolean;
   dartEnabled?: boolean;
-  secEnabled?: boolean;
-  onlyValidated?: boolean;
+  intensityEnabled?: boolean;
+  risingEnabled?: boolean;
 }
 
 export interface PushDebugStatus {
@@ -73,7 +73,7 @@ export interface PushDebugStatus {
   actionRequired?: boolean;
   enabled?: boolean;
   dartEnabled?: boolean;
-  secEnabled?: boolean;
-  onlyValidated?: boolean;
+  intensityEnabled?: boolean;
+  risingEnabled?: boolean;
   error?: string;
 }

@@ -46,6 +46,13 @@ export function PageNavigation({ current }: { current: PageKey }) {
         >
           체결강도 TOP 10
         </Link>
+        <Link
+          className={current === "notifications" ? styles.navActive : styles.navLink}
+          href="/notifications"
+          prefetch={false}
+        >
+          알림 설정
+        </Link>
       </nav>
       <ThemeToggle />
     </header>

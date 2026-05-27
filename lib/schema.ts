@@ -51,8 +51,8 @@ export const pushSubscriptions = pgTable(
     userAgent: text("user_agent"),
     enabled: boolean("enabled").notNull().default(true),
     dartEnabled: boolean("dart_enabled").notNull().default(true),
-    secEnabled: boolean("sec_enabled").notNull().default(true),
-    onlyValidated: boolean("only_validated").notNull().default(false),
+    intensityEnabled: boolean("intensity_enabled").notNull().default(true),
+    risingEnabled: boolean("rising_enabled").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   }
