@@ -159,7 +159,7 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
     return result;
   } catch (err: any) {
     const kisErrMsg = err.message || String(err);
-    const isAuthError = kisErrMsg.includes("AUTH") || kisErrMsg.includes("[2]");
+    const isAuthError = kisErrMsg.includes("AUTH") || kisErrMsg.includes("401");
 
     // AUTH 에러인 경우: 토큰 캐시가 오래되거나 잡목된 토큰일 가능성 높음 → 자동 재발급 후 재시도
     if (isAuthError) {
