@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncTradingIntensityStocks, fetchTradingIntensity } from "@/lib/kis";
 import { sendPushAlerts } from "@/lib/push";
+import { clearTokenCache } from "@/lib/kis";
 import type { AlertItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,9 @@ export async function GET() {
   try {
     const KIS_APPKEY = process.env.KIS_APPKEY;
     const KIS_APPSECRET = process.env.KIS_APPSECRET;
+
+    // 수동 sync 호출 시 항상 인메모리 토큰 캐시를 초기화
+    clearTokenCache();
 
     // 실시간 fetch 디버그 진단 및 동기화 수행
     const rawTop10 = await fetchTradingIntensity();
@@ -39,6 +43,10 @@ export async function GET() {
         hasAppKey: !!KIS_APPKEY,
         hasAppSecret: !!KIS_APPSECRET,
         rawTop10Length: rawTop10.length,
+        isFallback: (rawTop10 as any).isFallback ?? false,
+        fallbackSource: (rawTop10 as any).fallbackSource ?? "kis",
+        kisError: (rawTop10 as any).kisError ?? null,
+        rawTop10,
         nodeEnv: process.env.NODE_ENV,
       },
       newlyAdded,

@@ -356,30 +356,39 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
         return top10;
       }
     }
-  } catch (err) {
-    console.warn(`[KIS] fetchTradingIntensity live fetch failed, reading closing session DB cache:`, err);
-  }
+  } catch (err: any) {
+    const kisErrMsg = err.message || String(err);
+    console.warn(`[KIS] fetchTradingIntensity live fetch failed (${kisErrMsg}), reading closing session DB cache:`, err);
 
-  // D. 장애/장외 시간 -> 절대 Mock Data를 쓰지 않고 DB 캐시에서 마지막 실거래 기록 복원
-  try {
-    const db = getDb();
-    if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
+    // D. 장애/장외 시간 -> 절대 Mock Data를 쓰지 않고 DB 캐시에서 마지막 실거래 기록 복원
+    try {
+      const db = getDb();
+      if (db) {
+        const cacheRecord = await db.select({
+          data: kisCache.data
+        })
+        .from(kisCache)
+        .where(eq(kisCache.key, cacheKey))
+        .limit(1);
 
-      if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as StockIntensity[];
+        if (cacheRecord.length > 0) {
+          const cached = cacheRecord[0].data as StockIntensity[];
+          (cached as any).isFallback = true;
+          (cached as any).fallbackSource = "db";
+          (cached as any).kisError = kisErrMsg;
+          return cached;
+        }
       }
+    } catch (dbReadErr) {
+      console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
     }
-  } catch (dbReadErr) {
-    console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
+
+    const empty: StockIntensity[] = [];
+    (empty as any).kisError = kisErrMsg;
+    return empty;
   }
 
-  return [];
+  // D-fallback (token=null 경우) -> 장외/API키 없음 -> DB 캐시 복원
 }
 
 // 2. 거래대금/거래량 폭발 스캐너
