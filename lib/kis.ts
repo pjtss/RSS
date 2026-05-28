@@ -307,7 +307,12 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
       const db = getDb();
       if (db) {
         const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "trading_intensity")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as StockIntensity[];
+        if (cacheRecord.length > 0) {
+          const restored = cacheRecord[0].data as StockIntensity[];
+          (restored as any).isFallback = true;
+          (restored as any).fallbackSource = "db";
+          return restored;
+        }
       }
     } catch {}
     return [];
@@ -383,7 +388,10 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
       .limit(1);
 
       if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as StockIntensity[];
+        const restored = cacheRecord[0].data as StockIntensity[];
+        (restored as any).isFallback = true;
+        (restored as any).fallbackSource = "db";
+        return restored;
       }
     }
   } catch (dbReadErr) {
