@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PageNavigation } from "@/components/page-navigation";
+import { GLOBAL_POLLING_INTERVAL } from "@/lib/constants";
 import styles from "../../trading-intensity/page.module.css";
 
 interface UsIntensityStockItem {
@@ -60,7 +61,7 @@ export default function UsTradingIntensityScannerPage() {
 
   const handleAutoSync = async () => {
     try {
-      console.info("⚡ [KIS-DEBUG-CLIENT] 미국 체결강도 자동 동기화 10초 주기 요청...");
+      console.info("⚡ [KIS-DEBUG-CLIENT] 미국 체결강도 자동 동기화 60초 주기 요청...");
       const res = await fetch("/api/stock/us/intensity/sync", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
@@ -103,7 +104,7 @@ export default function UsTradingIntensityScannerPage() {
 
     const interval = setInterval(() => {
       void handleAutoSync();
-    }, 10000);
+    }, GLOBAL_POLLING_INTERVAL);
 
     return () => clearInterval(interval);
   }, []);
@@ -136,13 +137,13 @@ export default function UsTradingIntensityScannerPage() {
             <p className={styles.kicker}>LIVE QUANT TERMINAL</p>
             <h1>미국 체결강도 TOP 10 스캐너</h1>
             <p className={styles.subtitle}>
-              실시간 미국 주식 체결강도 상위 10개 종목을 10초마다 모니터링하고 DB에 저장/갱신합니다.
+              실시간 미국 주식 체결강도 상위 10개 종목을 60초마다 모니터링하고 DB에 저장/갱신합니다.
             </p>
           </div>
           <div className={styles.actions}>
             <div className={styles.autoRefreshBadge}>
               <span className={styles.pulseDot}></span>
-              <span>10초 자동 갱신 중</span>
+              <span>60초 자동 갱신 중</span>
             </div>
             <button
               className={styles.syncBtn}

@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { PageNavigation } from "@/components/page-navigation";
+import { GLOBAL_POLLING_INTERVAL } from "@/lib/constants";
+import { ChartModal } from "@/components/chart-modal";
 import styles from "./page.module.css";
 
 interface StockIntensityItem {
   company: string;
+  code: string;
   intensity: number;
   price: string;
   changeRate: string;
@@ -20,6 +23,12 @@ export default function TradingIntensityScannerPage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFallback, setIsFallback] = useState(false);
+  const [chartTarget, setChartTarget] = useState<{ code: string; company: string } | null>(null);
+
+  const openChart = useCallback((code: string, company: string) => {
+    setChartTarget({ code, company });
+  }, []);
+  const closeChart = useCallback(() => setChartTarget(null), []);
 
   const fetchStocks = async (isAuto = false) => {
     try {
@@ -62,7 +71,7 @@ export default function TradingIntensityScannerPage() {
 
   const handleAutoSync = async () => {
     try {
-      console.info("⚡ [KIS-DEBUG-CLIENT] 체결강도 자동 동기화 10초 주기 요청...");
+      console.info("⚡ [KIS-DEBUG-CLIENT] 체결강도 자동 동기화 60초 주기 요청...");
       const res = await fetch("/api/stock/intensity/sync", { method: "POST" });
       if (res.ok) {
         const data = await res.json();
@@ -103,10 +112,10 @@ export default function TradingIntensityScannerPage() {
   useEffect(() => {
     fetchStocks();
 
-    // 10초마다 실시간 동기화 요청 및 최신 데이터로 화면 갱신
+    // 60초마다 실시간 동기화 요청 및 최신 데이터로 화면 갱신
     const interval = setInterval(() => {
       void handleAutoSync();
-    }, 10000);
+    }, GLOBAL_POLLING_INTERVAL);
 
     return () => clearInterval(interval);
   }, []);
@@ -139,13 +148,13 @@ export default function TradingIntensityScannerPage() {
             <p className={styles.kicker}>LIVE QUANT TERMINAL</p>
             <h1>체결강도 TOP 10 스캐너</h1>
             <p className={styles.subtitle}>
-              실시간 국내 주식 체결강도 상위 10개 종목을 10초마다 모니터링하고 DB에 저장/갱신합니다.
+              실시간 국내 주식 체결강도 상위 10개 종목을 60초마다 모니터링하고 DB에 저장/갱신합니다.
             </p>
           </div>
           <div className={styles.actions}>
             <div className={styles.autoRefreshBadge}>
               <span className={styles.pulseDot}></span>
-              <span>10초 자동 갱신 중</span>
+              <span>60초 자동 갱신 중</span>
             </div>
             <button
               className={styles.syncBtn}
@@ -196,7 +205,7 @@ export default function TradingIntensityScannerPage() {
               <thead>
                 <tr>
                   <th>순위</th>
-                  <th>종목명</th>
+                  <th>종목명 (클릭 → 차트)</th>
                   <th>체결강도</th>
                   <th>현재가</th>
                   <th>등락률</th>
@@ -216,7 +225,14 @@ export default function TradingIntensityScannerPage() {
                           {i + 1}
                         </span>
                       </td>
-                      <td className={styles.companyCell}>{stock.company}</td>
+                      <td
+                        className={styles.companyCell}
+                        style={{ cursor: "pointer", color: "#00ffa3" }}
+                        onClick={() => openChart(stock.code, stock.company)}
+                        title="클릭하여 차트 보기"
+                      >
+                        📈 {stock.company}
+                      </td>
                       <td className={styles.intensityCell}>{stock.intensity}%</td>
                       <td className={styles.priceCell}>{stock.price}원</td>
                       <td className={`${styles.rateCell} ${isUp ? styles.up : styles.down}`}>
@@ -233,6 +249,14 @@ export default function TradingIntensityScannerPage() {
           </div>
         )}
       </div>
+
+      {chartTarget && (
+        <ChartModal
+          code={chartTarget.code}
+          company={chartTarget.company}
+          onClose={closeChart}
+        />
+      )}
     </main>
   );
 }

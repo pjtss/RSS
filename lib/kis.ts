@@ -282,6 +282,10 @@ async function fetchRealVolumeRank(token: string): Promise<KisOutput[]> {
 // 1. 체결강도 상위
 export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
   const offset = getDynamicOffset(1);
+  const withError = (items: StockIntensity[], message: string) => {
+    (items as any).kisError = message;
+    return items;
+  };
 
   // A. 테스트 모드인 경우 -> 테스트 통과용 가짜 데이터 반환 (vitest 보존)
   if (process.env.NODE_ENV === "test") {
@@ -311,11 +315,11 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
           const restored = cacheRecord[0].data as StockIntensity[];
           (restored as any).isFallback = true;
           (restored as any).fallbackSource = "db";
-          return restored;
+          return withError(restored, "API credentials missing; restored from DB cache.");
         }
       }
     } catch {}
-    return [];
+    return withError([], "API credentials missing; no DB cache available.");
   }
 
   const token = await getAccessToken();
@@ -323,9 +327,13 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
 
   // C. 실시간 KIS OpenAPI 조회 시도 및 성공 시 DB 캐시 업데이트
   try {
-    if (token) {
-      const realItems = await fetchRealVolumeRank(token);
-      if (realItems && realItems.length > 0) {
+    if (!token) {
+      console.warn("[KIS-DEBUG] Access token fetch failed, returning empty array");
+      return withError([], "getAccessToken() returned null.");
+    }
+
+    const realItems = await fetchRealVolumeRank(token);
+    if (realItems && realItems.length > 0) {
         const mappedData = realItems.map((item, i) => {
           const rawPrice = parseInt(item.stck_prpr, 10) || 0;
           const rawVrss = parseInt(item.prdy_vrss, 10) || 0;
@@ -370,10 +378,11 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
         }
 
         return top10;
-      }
     }
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
     console.warn(`[KIS] fetchTradingIntensity live fetch failed, reading closing session DB cache:`, err);
+    (globalThis as any).__lastKisTradingIntensityError = msg;
   }
 
   // D. 장애/장외 시간 -> 절대 Mock Data를 쓰지 않고 DB 캐시에서 마지막 실거래 기록 복원
@@ -391,14 +400,18 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
         const restored = cacheRecord[0].data as StockIntensity[];
         (restored as any).isFallback = true;
         (restored as any).fallbackSource = "db";
-        return restored;
+        const lastErr = (globalThis as any).__lastKisTradingIntensityError;
+        const msg = lastErr ? `KIS live fetch failed: ${lastErr}. Restored from DB cache.` : "Restored from DB cache.";
+        return withError(restored, msg);
       }
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
   }
 
-  return [];
+  const lastErr = (globalThis as any).__lastKisTradingIntensityError;
+  const msg = lastErr ? `KIS live fetch failed: ${lastErr}. DB cache empty.` : "KIS live fetch returned empty and DB cache empty.";
+  return withError([], msg);
 }
 
 // 2. 거래대금/거래량 폭발 스캐너
