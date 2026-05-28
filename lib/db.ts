@@ -126,6 +126,16 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE push_subscriptions
+      ADD COLUMN IF NOT EXISTS intensity_enabled BOOLEAN NOT NULL DEFAULT TRUE
+    `);
+
+    await client.query(`
+      ALTER TABLE push_subscriptions
+      ADD COLUMN IF NOT EXISTS rising_enabled BOOLEAN NOT NULL DEFAULT TRUE
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS filings_source_date_idx
       ON filings (source, published_date_seoul DESC, published_at DESC);
     `);
