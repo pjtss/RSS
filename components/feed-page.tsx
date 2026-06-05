@@ -10,7 +10,6 @@ import { getWatchlist, toggleWatchlist } from "@/lib/watchlist";
 import { MarketSentiment } from "./market-sentiment";
 import { SectorMap } from "./sector-map";
 import { CompanyTimeline } from "./company-timeline";
-import { TradingIntensity } from "./trading-intensity";
 import { ContractBadge } from "./contract-badge";
 import styles from "./feed-page.module.css";
 
@@ -339,12 +338,6 @@ export function FeedPage(props: FeedPageProps) {
           <span>페이지 {currentPage} / {totalPages}</span>
           <span>갱신 시각 {fetchedAt ? formatTime(fetchedAt) : "-"}</span>
         </div>
-        
-        {props.type === "dart" && (
-          <>
-            <TradingIntensity />
-          </>
-        )}
       </section>
 
       {error ? <div className={styles.error}>{error}</div> : null}
