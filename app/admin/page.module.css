@@ -1,0 +1,287 @@
+.page {
+  min-height: 100vh;
+  width: min(100% - 24px, 1200px);
+  margin: 0 auto;
+  padding: 40px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.shell {
+  width: 100%;
+  padding: 40px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96)),
+    radial-gradient(circle at top left, rgba(0, 255, 163, 0.08), transparent 36%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 28%);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 163, 0.05),
+    0 24px 60px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #00ffa3;
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(0, 255, 163, 0.35);
+}
+
+.title {
+  margin: 6px 0 0;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 900;
+  color: #f8fafc;
+  letter-spacing: -0.03em;
+}
+
+.subtitle {
+  margin: 10px 0 0;
+  color: #cbd5e1;
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoutButton {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid rgba(0, 255, 163, 0.22);
+  border-radius: 12px;
+  background: rgba(0, 255, 163, 0.08);
+  color: #00ffa3;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(0, 255, 163, 0.14);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.logoutButton:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 255, 163, 0.12);
+  box-shadow: 0 0 24px rgba(0, 255, 163, 0.22);
+}
+
+.alert {
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.cardTitle {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.cardDesc {
+  margin: 8px 0 0;
+  color: #94a3b8;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  height: 34px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.on {
+  background: rgba(0, 255, 163, 0.14);
+  color: #00ffa3;
+  border: 1px solid rgba(0, 255, 163, 0.22);
+  box-shadow: 0 0 18px rgba(0, 255, 163, 0.12);
+}
+
+.off {
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.toggleButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  box-shadow: 0 0 18px rgba(59, 130, 246, 0.12);
+}
+
+.toggleButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: rgba(59, 130, 246, 0.18);
+  box-shadow: 0 0 24px rgba(59, 130, 246, 0.18);
+}
+
+.toggleButton:disabled,
+.logoutButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loginShell {
+  min-height: 100vh;
+  width: min(100% - 24px, 560px);
+  margin: 0 auto;
+  padding: 64px 0;
+  display: grid;
+  place-items: center;
+}
+
+.loginCard {
+  width: 100%;
+  padding: 32px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(2, 6, 23, 0.96)),
+    radial-gradient(circle at top, rgba(0, 255, 163, 0.08), transparent 42%);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+}
+
+.loginKicker {
+  margin: 0;
+  color: #00ffa3;
+  font-size: 12px;
+  letter-spacing: 0.28em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.loginTitle {
+  margin: 10px 0 0;
+  font-size: 32px;
+  color: #f8fafc;
+  font-weight: 900;
+}
+
+.loginForm {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.passwordInput {
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.88);
+  color: #f8fafc;
+  outline: none;
+}
+
+.passwordInput:focus {
+  border-color: rgba(0, 255, 163, 0.38);
+  box-shadow: 0 0 0 3px rgba(0, 255, 163, 0.1);
+}
+
+.submitButton {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1px solid rgba(0, 255, 163, 0.24);
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(0, 255, 163, 0.18), rgba(59, 130, 246, 0.18));
+  color: #e2e8f0;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 255, 163, 0.1);
+}
+
+@media (max-width: 768px) {
+  .page,
+  .loginShell {
+    width: min(100% - 24px, 100%);
+    padding: 20px 0;
+  }
+
+  .shell {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .statusGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardHeader {
+    flex-direction: column;
+  }
+}

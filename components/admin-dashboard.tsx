@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import styles from "@/app/admin/page.module.css";
 
 type FeatureKey = "dart_realtime" | "sec_realtime" | "us_scanners";
-
 type FeatureInfo = { key: FeatureKey; label: string; description: string };
 
-export function AdminDashboard({ loggedIn }: { loggedIn: boolean }) {
+type AdminDashboardProps = { loggedIn: boolean };
+
+export function AdminDashboard({ loggedIn }: AdminDashboardProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,9 +17,7 @@ export function AdminDashboard({ loggedIn }: { loggedIn: boolean }) {
 
   async function loadFlags() {
     const res = await fetch("/api/admin/flags", { cache: "no-store" });
-    if (!res.ok) {
-      throw new Error("관리자 플래그를 불러오지 못했습니다.");
-    }
+    if (!res.ok) throw new Error("관리자 플래그를 불러오지 못했습니다.");
     const data = await res.json();
     setFlags(data.flags);
     setFeatures(data.features);
@@ -80,58 +80,93 @@ export function AdminDashboard({ loggedIn }: { loggedIn: boolean }) {
 
   if (!loggedIn) {
     return (
-      <main style={{ padding: 24, maxWidth: 420, margin: "0 auto" }}>
-        <h1>관리자 로그인</h1>
-        <form onSubmit={handleLogin} style={{ display: "grid", gap: 12 }}>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="관리자 비밀번호"
-            style={{ padding: 12, border: "1px solid #ccc", borderRadius: 8 }}
-          />
-          <button type="submit" disabled={loading} style={{ padding: 12 }}>
-            {loading ? "로그인 중..." : "로그인"}
-          </button>
-          {error && <p style={{ color: "crimson" }}>{error}</p>}
-        </form>
+      <main className={styles.loginShell}>
+        <section className={styles.loginCard}>
+          <p className={styles.loginKicker}>ADMIN ACCESS</p>
+          <h1 className={styles.loginTitle}>관리자 로그인</h1>
+          <form onSubmit={handleLogin} className={styles.loginForm}>
+            <input
+              className={styles.passwordInput}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="관리자 비밀번호"
+            />
+            <button className={styles.submitButton} type="submit" disabled={loading}>
+              {loading ? "로그인 중..." : "로그인"}
+            </button>
+            {error && <p className={`${styles.alert} ${styles.error}`}>{error}</p>}
+          </form>
+        </section>
       </main>
     );
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 900, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <h1>관리자 대시보드</h1>
-        <button onClick={handleLogout} style={{ padding: "10px 14px" }}>로그아웃</button>
-      </div>
+    <main className={styles.page}>
+      <section className={styles.shell}>
+        <div className={styles.header}>
+          <div>
+            <p className={styles.eyebrow}>ADMIN CONTROL CENTER</p>
+            <h1 className={styles.title}>관리자 대시보드</h1>
+            <p className={styles.subtitle}>
+              DART, SEC, 미국 스캐너의 실시간 동작 여부를 한 곳에서 제어합니다.
+            </p>
+          </div>
+          <div className={styles.actions}>
+            <a
+              href="/admin/kis-us-test"
+              style={{
+                minHeight: 48,
+                padding: "0 18px",
+                display: "inline-flex",
+                alignItems: "center",
+                borderRadius: 12,
+                border: "1px solid rgba(59, 130, 246, 0.24)",
+                background: "rgba(59, 130, 246, 0.12)",
+                color: "#93c5fd",
+                fontWeight: 800,
+                textDecoration: "none",
+                boxShadow: "0 0 18px rgba(59, 130, 246, 0.12)",
+              }}
+            >
+              KIS 테스트
+            </a>
+            <button className={styles.logoutButton} onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
+        </div>
 
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+        {error && <div className={`${styles.alert} ${styles.error}`}>{error}</div>}
 
-      <section style={{ display: "grid", gap: 12, marginTop: 20 }}>
-        {features.map((feature) => {
-          const enabled = flags?.[feature.key] ?? false;
-          return (
-            <div key={feature.key} style={{ border: "1px solid #ddd", borderRadius: 12, padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
-                <div>
-                  <h2 style={{ margin: 0 }}>{feature.label}</h2>
-                  <p style={{ margin: "6px 0 0", color: "#666" }}>{feature.description}</p>
+        <section className={styles.statusGrid}>
+          {features.map((feature) => {
+            const enabled = flags?.[feature.key] ?? false;
+            return (
+              <article key={feature.key} className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <div>
+                    <h2 className={styles.cardTitle}>{feature.label}</h2>
+                    <p className={styles.cardDesc}>{feature.description}</p>
+                  </div>
+                  <span className={`${styles.state} ${enabled ? styles.on : styles.off}`}>
+                    {enabled ? "켜짐" : "꺼짐"}
+                  </span>
                 </div>
-                <button
-                  onClick={() => void handleToggle(feature.key, !enabled)}
-                  disabled={loading}
-                  style={{ padding: "10px 14px", minWidth: 120 }}
-                >
-                  {enabled ? "끄기" : "켜기"}
-                </button>
-              </div>
-              <p style={{ margin: "10px 0 0", fontWeight: 600 }}>
-                상태: {enabled ? "켜짐" : "꺼짐"}
-              </p>
-            </div>
-          );
-        })}
+                <div style={{ marginTop: 16 }}>
+                  <button
+                    className={styles.toggleButton}
+                    onClick={() => void handleToggle(feature.key, !enabled)}
+                    disabled={loading}
+                  >
+                    {enabled ? "끄기" : "켜기"}
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
       </section>
     </main>
   );
