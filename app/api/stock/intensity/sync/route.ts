@@ -3,11 +3,19 @@ import { syncTradingIntensityStocks, fetchTradingIntensity } from "@/lib/kis";
 import { sendPushAlerts } from "@/lib/push";
 import { clearTokenCache } from "@/lib/kis";
 import type { AlertItem } from "@/lib/types";
+import { isDomesticScannerOpen } from "@/lib/scanner-hours";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    if (!isDomesticScannerOpen()) {
+      return NextResponse.json(
+        { success: false, error: "국내 스캐너는 KST 08:00~15:30에만 동작합니다." },
+        { status: 503 },
+      );
+    }
+
     const KIS_APPKEY = process.env.KIS_APPKEY;
     const KIS_APPSECRET = process.env.KIS_APPSECRET;
 

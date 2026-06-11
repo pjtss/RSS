@@ -3,11 +3,27 @@ import { syncUsTradingIntensityStocks } from "@/lib/kis-us";
 import { getDb } from "@/lib/db";
 import { kisCache } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { isUsScannerOpen } from "@/lib/scanner-hours";
+import { loadAdminFeatureFlags } from "@/lib/admin-flags";
 
 export const dynamic = "force-dynamic";
 
 export async function POST() {
   try {
+    const flags = await loadAdminFeatureFlags();
+    if (!flags.us_scanners) {
+      return NextResponse.json(
+        { success: false, error: "미국 스캐너 기능이 관리자에 의해 비활성화되었습니다." },
+        { status: 503 },
+      );
+    }
+    if (!isUsScannerOpen()) {
+      return NextResponse.json(
+        { success: false, error: "미국 스캐너는 KST 17:00~02:00에만 동작합니다." },
+        { status: 503 },
+      );
+    }
+
     const newRecords = await syncUsTradingIntensityStocks();
     
     // KIS OpenAPI 연동이 모종의 이유(장외 등)로 실패하거나 빈 배열 반환 시 DB 영속 캐시에서 안전하게 100% 실데이터를 복원

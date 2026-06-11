@@ -3,11 +3,27 @@ import { syncTopRisingStocks, fetchTopRisingStocks } from "@/lib/kis-us";
 import { sendPushAlerts } from "@/lib/push";
 import { runWithKisUsDebugCapture } from "@/lib/kis-us-debug";
 import type { AlertItem } from "@/lib/types";
+import { isUsScannerOpen } from "@/lib/scanner-hours";
+import { loadAdminFeatureFlags } from "@/lib/admin-flags";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
+    const flags = await loadAdminFeatureFlags();
+    if (!flags.us_scanners) {
+      return NextResponse.json(
+        { success: false, error: "미국 스캐너 기능이 관리자에 의해 비활성화되었습니다." },
+        { status: 503 },
+      );
+    }
+    if (!isUsScannerOpen()) {
+      return NextResponse.json(
+        { success: false, error: "미국 스캐너는 KST 17:00~02:00에만 동작합니다." },
+        { status: 503 },
+      );
+    }
+
     const KIS_APPKEY = process.env.KIS_APPKEY;
     const KIS_APPSECRET = process.env.KIS_APPSECRET;
 

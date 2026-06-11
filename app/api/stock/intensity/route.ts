@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { topIntensityStocks, kisCache } from "@/lib/schema";
 import { syncTradingIntensityStocks } from "@/lib/kis";
 import { eq } from "drizzle-orm";
+import { isDomesticScannerOpen } from "@/lib/scanner-hours";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,12 @@ export async function GET() {
   headers.set("Cache-Control", "no-store, max-age=0");
 
   try {
+    if (!isDomesticScannerOpen()) {
+      headers.set("x-debug-status", "disabled");
+      headers.set("x-debug-reason", "국내 스캐너는 KST 08:00~15:30에만 동작합니다.");
+      return NextResponse.json({ error: "Domestic scanner disabled outside market hours" }, { status: 503, headers });
+    }
+
     const db = getDb();
     if (!db) {
       headers.set("x-debug-status", "error");

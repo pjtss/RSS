@@ -5,13 +5,15 @@ import { sendPushAlerts } from "../../lib/push";
 import { sendTelegramAlerts } from "../../lib/telegram";
 import { syncTopRisingStocks } from "../../lib/kis-us";
 import type { AlertItem } from "../../lib/types";
+import { loadAdminFeatureFlags } from "../../lib/admin-flags";
 
 export const handler = schedule("*/1 * * * *", async () => {
   try {
     await ensureSchema();
+    const flags = await loadAdminFeatureFlags();
 
     // 1. DART 공시 동기화 및 알림 발송
-    const dartPayload = await syncDartAlerts();
+    const dartPayload = flags.dart_realtime ? await syncDartAlerts() : { newAlerts: [] };
     const alerts = dartPayload.newAlerts ?? [];
 
     await Promise.all([
@@ -22,6 +24,9 @@ export const handler = schedule("*/1 * * * *", async () => {
     // 2. KIS 상승률 TOP 10 동기화 및 알림 발송
     let risingSent = 0;
     try {
+      if (!flags.us_scanners) {
+        throw new Error("US scanners disabled by admin");
+      }
       const newlyAdded = await syncTopRisingStocks();
       if (newlyAdded && newlyAdded.length > 0) {
         const risingAlerts: AlertItem[] = newlyAdded.map((s) => ({

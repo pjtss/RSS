@@ -15,7 +15,8 @@ type PageKey =
   | "scanners-us"
   | "us-intensity"
   | "top-rising"
-  | "trading-intensity";
+  | "trading-intensity"
+  | "admin";
 
 export function PageNavigation({ current }: { current: PageKey }) {
   return (
@@ -53,6 +54,9 @@ export function PageNavigation({ current }: { current: PageKey }) {
           prefetch={false}
         >
           알림 설정
+        </Link>
+        <Link className={current === "admin" ? styles.navActive : styles.navLink} href="/admin" prefetch={false}>
+          관리자
         </Link>
       </nav>
       <ThemeToggle />

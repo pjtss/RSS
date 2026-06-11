@@ -94,7 +94,17 @@ export const kisCache = pgTable(
   }
 );
 
-// 7. 상승률 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
+// 7. 관리자 기능 플래그 저장소
+export const featureFlags = pgTable(
+  "feature_flags",
+  {
+    key: text("key").primaryKey(),
+    enabled: boolean("enabled").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  }
+);
+
+// 8. 상승률 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
 export const topRisingStocks = pgTable(
   "top_rising_stocks",
   {
@@ -106,7 +116,7 @@ export const topRisingStocks = pgTable(
   }
 );
 
-// 8. 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
+// 9. 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
 export const topIntensityStocks = pgTable(
   "top_intensity_stocks",
   {
@@ -118,7 +128,7 @@ export const topIntensityStocks = pgTable(
     addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
   }
 );
-// 9. 미국 주식 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
+// 10. 미국 주식 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
 export const usIntensityStocks = pgTable(
   "us_intensity_stocks",
   {

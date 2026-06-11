@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { PageNavigation } from "@/components/page-navigation";
 import { GLOBAL_POLLING_INTERVAL } from "@/lib/constants";
 import { ChartModal } from "@/components/chart-modal";
+import { isDomesticScannerOpen } from "@/lib/scanner-hours";
 import styles from "./page.module.css";
 
 interface StockIntensityItem {
@@ -24,6 +25,7 @@ export default function TradingIntensityScannerPage() {
   const [error, setError] = useState<string | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [chartTarget, setChartTarget] = useState<{ code: string; company: string } | null>(null);
+  const isMarketOpen = isDomesticScannerOpen();
 
   const openChart = useCallback((code: string, company: string) => {
     setChartTarget({ code, company });
@@ -110,6 +112,12 @@ export default function TradingIntensityScannerPage() {
   };
 
   useEffect(() => {
+    if (!isMarketOpen) {
+      setLoading(false);
+      setError("국내 스캐너는 KST 08:00~15:30에만 동작합니다.");
+      return;
+    }
+
     fetchStocks();
 
     // 60초마다 실시간 동기화 요청 및 최신 데이터로 화면 갱신
@@ -118,7 +126,7 @@ export default function TradingIntensityScannerPage() {
     }, GLOBAL_POLLING_INTERVAL);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isMarketOpen]);
 
   const formatTime = (isoString: string) => {
     try {
@@ -154,17 +162,31 @@ export default function TradingIntensityScannerPage() {
           <div className={styles.actions}>
             <div className={styles.autoRefreshBadge}>
               <span className={styles.pulseDot}></span>
-              <span>60초 자동 갱신 중</span>
+              <span>{isMarketOpen ? "60초 자동 갱신 중" : "장중에만 동작"}</span>
             </div>
             <button
               className={styles.syncBtn}
               onClick={handleManualSync}
-              disabled={loading || syncing}
+              disabled={loading || syncing || !isMarketOpen}
             >
-              {syncing ? "⚡ 동기화 중..." : "🔄 실시간 수동 갱신"}
+              {syncing ? "⚡ 동기화 중..." : isMarketOpen ? "🔄 실시간 수동 갱신" : "⏸ 장중에만 사용"}
             </button>
           </div>
         </div>
+
+        {!isMarketOpen && (
+          <div className={styles.warningAlert} style={{
+            background: "rgba(59, 130, 246, 0.1)",
+            border: "1px solid rgba(59, 130, 246, 0.2)",
+            color: "#60a5fa",
+            padding: "12px 16px",
+            borderRadius: "12px",
+            marginBottom: "16px",
+            fontWeight: "bold",
+          }}>
+            국내 스캐너는 KST 08:00~15:30에만 동작합니다.
+          </div>
+        )}
 
         {isFallback && (
           <div className={styles.warningAlert} style={{

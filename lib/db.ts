@@ -149,6 +149,20 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS feature_flags (
+        key TEXT PRIMARY KEY,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
+      INSERT INTO feature_flags (key, enabled)
+      VALUES ('korean_rising_top_n', TRUE)
+      ON CONFLICT (key) DO NOTHING;
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS top_rising_stocks (
         code TEXT PRIMARY KEY,
         company TEXT NOT NULL,
