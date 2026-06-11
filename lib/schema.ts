@@ -104,7 +104,17 @@ export const featureFlags = pgTable(
   }
 );
 
-// 8. 상승률 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
+// 8. 관리자 KIS 요청 설정 저장소
+export const kisApiConfigs = pgTable(
+  "kis_api_configs",
+  {
+    key: text("key").primaryKey(),
+    config: jsonb("config").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  }
+);
+
+// 9. 상승률 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
 export const topRisingStocks = pgTable(
   "top_rising_stocks",
   {
@@ -116,7 +126,7 @@ export const topRisingStocks = pgTable(
   }
 );
 
-// 9. 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
+// 10. 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
 export const topIntensityStocks = pgTable(
   "top_intensity_stocks",
   {
@@ -128,7 +138,7 @@ export const topIntensityStocks = pgTable(
     addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
   }
 );
-// 10. 미국 주식 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
+// 11. 미국 주식 체결강도 상위 TOP 10 실시간 데이터 엔티티 (비교 및 갱신용)
 export const usIntensityStocks = pgTable(
   "us_intensity_stocks",
   {

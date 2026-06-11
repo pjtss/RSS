@@ -5,6 +5,19 @@ import styles from "@/app/admin/page.module.css";
 
 type FeatureKey = "dart_realtime" | "sec_realtime" | "us_scanners";
 type FeatureInfo = { key: FeatureKey; label: string; description: string };
+type KisApiConfig = {
+  KEYB: string;
+  AUTH: string;
+  EXCD: string;
+  GUBN?: string;
+  NDAY?: string;
+  VOL_RANG?: string;
+  tr_id: string;
+  custtype: string;
+  content_type: string;
+  authorization: string;
+};
+type KisApiConfigKey = "us_updown_rate" | "us_volume_power";
 
 type AdminDashboardProps = { loggedIn: boolean };
 
@@ -14,6 +27,7 @@ export function AdminDashboard({ loggedIn }: AdminDashboardProps) {
   const [loading, setLoading] = useState(false);
   const [flags, setFlags] = useState<Record<FeatureKey, boolean> | null>(null);
   const [features, setFeatures] = useState<FeatureInfo[]>([]);
+  const [kisConfigs, setKisConfigs] = useState<Record<KisApiConfigKey, KisApiConfig> | null>(null);
 
   async function loadFlags() {
     const res = await fetch("/api/admin/flags", { cache: "no-store" });
@@ -23,9 +37,18 @@ export function AdminDashboard({ loggedIn }: AdminDashboardProps) {
     setFeatures(data.features);
   }
 
+  async function loadKisConfigs() {
+    const res = await fetch("/api/admin/kis-api-config", { cache: "no-store" });
+    if (!res.ok) throw new Error("KIS API 설정을 불러오지 못했습니다.");
+    const data = await res.json();
+    setKisConfigs(data.configs);
+  }
+
   useEffect(() => {
     if (loggedIn) {
-      void loadFlags().catch((err) => setError(err instanceof Error ? err.message : String(err)));
+      void Promise.all([loadFlags(), loadKisConfigs()]).catch((err) =>
+        setError(err instanceof Error ? err.message : String(err))
+      );
     }
   }, [loggedIn]);
 
@@ -76,6 +99,31 @@ export function AdminDashboard({ loggedIn }: AdminDashboardProps) {
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST" });
     window.location.reload();
+  }
+
+  async function handleKisConfigChange(key: KisApiConfigKey, nextConfig: KisApiConfig) {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/kis-api-config", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ key, config: nextConfig }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "KIS API 설정 저장에 실패했습니다.");
+      }
+      const data = await res.json();
+      setKisConfigs((prev) => ({
+        ...(prev || {}),
+        [key]: data.config,
+      }) as Record<KisApiConfigKey, KisApiConfig>);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!loggedIn) {
@@ -164,6 +212,62 @@ export function AdminDashboard({ loggedIn }: AdminDashboardProps) {
                   </button>
                 </div>
               </article>
+            );
+          })}
+        </section>
+
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div>
+              <h2 className={styles.cardTitle}>KIS API 요청 설정</h2>
+              <p className={styles.cardDesc}>
+                환경변수로 받는 appkey, appsecret은 제외하고 나머지 헤더/파라미터만 조정합니다. AUTH와 KEYB는 기본값을 빈 문자열로 둡니다.
+              </p>
+            </div>
+          </div>
+
+          {(["us_updown_rate", "us_volume_power"] as const).map((key) => {
+            const config = kisConfigs?.[key];
+            if (!config) return null;
+            const update = (patch: Partial<KisApiConfig>) =>
+              void handleKisConfigChange(key, { ...config, ...patch });
+
+            return (
+              <div key={key} style={{ marginTop: 18, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <h3 className={styles.cardTitle} style={{ fontSize: 16 }}>
+                  {key === "us_updown_rate" ? "해외주식 상승율/하락율" : "해외주식 체결강도"}
+                </h3>
+                <div style={{ display: "grid", gap: 12, marginTop: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+                  {[
+                    ["KEYB", config.KEYB],
+                    ["AUTH", config.AUTH],
+                    ["EXCD", config.EXCD],
+                    ["GUBN", config.GUBN ?? ""],
+                    ["NDAY", config.NDAY ?? ""],
+                    ["VOL_RANG", config.VOL_RANG ?? ""],
+                    ["tr_id", config.tr_id],
+                    ["custtype", config.custtype],
+                    ["content_type", config.content_type],
+                    ["authorization", config.authorization],
+                  ].map(([field, value]) => (
+                    <label key={field} style={{ display: "grid", gap: 6 }}>
+                      <span style={{ color: "#cbd5e1", fontWeight: 700, fontSize: 13 }}>{field}</span>
+                      <input
+                        defaultValue={value}
+                        onBlur={(e) => update({ [field]: e.target.value } as Partial<KisApiConfig>)}
+                        style={{
+                          minHeight: 42,
+                          borderRadius: 12,
+                          padding: "0 12px",
+                          border: "1px solid rgba(148, 163, 184, 0.22)",
+                          background: "rgba(15, 23, 42, 0.88)",
+                          color: "#f8fafc",
+                        }}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
             );
           })}
         </section>

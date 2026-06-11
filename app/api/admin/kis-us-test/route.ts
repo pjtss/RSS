@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { getAccessToken } from "@/lib/kis";
+import { loadKisApiConfig } from "@/lib/kis-api-config";
 
 export async function GET(request: Request) {
   if (!(await requireAdminSession())) {
@@ -9,9 +10,10 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const excd = url.searchParams.get("excd") || "NAS";
-  const gubn = url.searchParams.get("gubn") || "1";
-  const nday = url.searchParams.get("nday") || "0";
-  const volRang = url.searchParams.get("volRang") || "5";
+  const config = await loadKisApiConfig("us_updown_rate");
+  const gubn = url.searchParams.get("gubn") || config.GUBN || "1";
+  const nday = url.searchParams.get("nday") || config.NDAY || "0";
+  const volRang = url.searchParams.get("volRang") || config.VOL_RANG || "5";
 
   const token = await getAccessToken();
   if (!token) {
@@ -19,8 +21,8 @@ export async function GET(request: Request) {
   }
 
   const params = new URLSearchParams({
-    KEYB: process.env.KIS_APPKEY || "",
-    AUTH: token,
+    KEYB: config.KEYB || "",
+    AUTH: config.AUTH || "",
     EXCD: excd,
     GUBN: gubn,
     NDAY: nday,
@@ -35,11 +37,11 @@ export async function GET(request: Request) {
     method: "GET",
     headers: {
       "content-type": "application/json; charset=utf-8",
-      authorization: `Bearer ${token}`,
+      authorization: config.authorization || `Bearer ${token}`,
       appkey: process.env.KIS_APPKEY || "",
       appsecret: process.env.KIS_APPSECRET || "",
-      tr_id: trId,
-      custtype: "P",
+      tr_id: config.tr_id || trId,
+      custtype: config.custtype || "P",
       tr_cont: "",
     },
   });
@@ -63,8 +65,8 @@ export async function GET(request: Request) {
         appkey: "<masked>",
         appsecret: "<masked>",
         "content-type": "application/json; charset=utf-8",
-        tr_id: trId,
-        custtype: "P",
+        tr_id: config.tr_id || trId,
+        custtype: config.custtype || "P",
         tr_cont: "",
       },
     },

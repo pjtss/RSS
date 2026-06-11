@@ -2,6 +2,7 @@ import { getDb } from "./db";
 import { kisCache, topRisingStocks, usIntensityStocks } from "./schema";
 import { eq, inArray } from "drizzle-orm";
 import { getAccessToken, getKisMode, clearTokenCache } from "./kis";
+import { loadKisApiConfig } from "./kis-api-config";
 import { buildKisUsRequestDebug, pushKisUsDebugLog } from "./kis-us-debug";
 
 const KIS_APPKEY = process.env.KIS_APPKEY;
@@ -40,13 +41,14 @@ function getDynamicOffset(seed: number): number {
 
 // 해외 주식 시세 API 직접 조회 헬퍼
 async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUsOutput[]> {
+  const config = await loadKisApiConfig("us_updown_rate");
   const params = new URLSearchParams({
-    KEYB: KIS_APPKEY || "",
-    AUTH: token,
+    KEYB: config.KEYB || "",
+    AUTH: config.AUTH || "",
     EXCD: excd,       // 거래소 코드
-    GUBN: "1",        // 상승율/하락율 구분 (1: 상승율)
-    NDAY: "0",        // 날짜 구분
-    VOL_RANG: "5",    // 거래량 조건 (5: 거래량이 활성화된 종목을 수집하여 왜곡 방지)
+    GUBN: config.GUBN || "1",
+    NDAY: config.NDAY || "0",
+    VOL_RANG: config.VOL_RANG || "5",
   });
 
   // 오직 실전투자 계좌만 지원 (모의투자 완전 배제, 실거래 서버 고정)
@@ -61,12 +63,12 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
     pushKisUsDebugLog(
       "KIS-US-REQ",
       buildKisUsRequestDebug("GET", url, {
-        "content-type": "application/json; charset=utf-8",
-        authorization: `Bearer ${token}`,
+      "content-type": "application/json; charset=utf-8",
+        authorization: config.authorization || `Bearer ${token}`,
         appkey: KIS_APPKEY || "",
         appsecret: KIS_APPSECRET || "",
-        tr_id: trId,
-        custtype: "P",
+        tr_id: config.tr_id || trId,
+        custtype: config.custtype || "P",
         tr_cont: "",
       })
     );
@@ -74,11 +76,11 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
       method: "GET",
       headers: {
         "content-type": "application/json; charset=utf-8",
-        authorization: `Bearer ${token}`,
+        authorization: config.authorization || `Bearer ${token}`,
         appkey: KIS_APPKEY || "",
         appsecret: KIS_APPSECRET || "",
-        tr_id: trId,
-        custtype: "P",  // 해외주식 API 필수 헤더 (P: 개인, B: 법인)
+        tr_id: config.tr_id || trId,
+        custtype: config.custtype || "P",  // 해외주식 API 필수 헤더 (P: 개인, B: 법인)
         tr_cont: "",    // 연속조회 비사용
       },
     });
@@ -132,11 +134,11 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
             "KIS-US-REQ-RETRY",
             buildKisUsRequestDebug("GET", url, {
               "content-type": "application/json; charset=utf-8",
-              authorization: `Bearer ${freshToken}`,
+              authorization: config.authorization || `Bearer ${freshToken}`,
               appkey: KIS_APPKEY || "",
               appsecret: KIS_APPSECRET || "",
-              tr_id: trId,
-              custtype: "P",
+              tr_id: config.tr_id || trId,
+              custtype: config.custtype || "P",
               tr_cont: "",
             })
           );
@@ -144,11 +146,11 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
             method: "GET",
             headers: {
               "content-type": "application/json; charset=utf-8",
-              authorization: `Bearer ${freshToken}`,
+              authorization: config.authorization || `Bearer ${freshToken}`,
               appkey: KIS_APPKEY || "",
               appsecret: KIS_APPSECRET || "",
-              tr_id: trId,
-              custtype: "P",
+              tr_id: config.tr_id || trId,
+              custtype: config.custtype || "P",
               tr_cont: "",
             },
           });
@@ -239,12 +241,13 @@ async function fetchRealUsVolumeRank(token: string, excd = "NAS"): Promise<KisUs
 
 // 해외 주식 체결강도 API 직접 조회 헬퍼
 async function fetchRealUsVolumePower(token: string, excd = "NAS"): Promise<KisUsIntensityOutput[]> {
+  const config = await loadKisApiConfig("us_volume_power");
   const params = new URLSearchParams({
-    KEYB: KIS_APPKEY || "",
-    AUTH: token,
+    KEYB: config.KEYB || "",
+    AUTH: config.AUTH || "",
     EXCD: excd,       // 거래소 코드
-    NDAY: "0",        // 날짜 구분
-    VOL_RANG: "5",    // 거래량 조건
+    NDAY: config.NDAY || "0",        // 날짜 구분
+    VOL_RANG: config.VOL_RANG || "5",    // 거래량 조건
   });
 
   const baseUrl = "https://openapi.koreainvestment.com:9443";
@@ -258,11 +261,11 @@ async function fetchRealUsVolumePower(token: string, excd = "NAS"): Promise<KisU
       "KIS-US-REQ",
       buildKisUsRequestDebug("GET", url, {
         "content-type": "application/json; charset=utf-8",
-        authorization: `Bearer ${token}`,
+        authorization: config.authorization || `Bearer ${token}`,
         appkey: KIS_APPKEY || "",
         appsecret: KIS_APPSECRET || "",
-        tr_id: trId,
-        custtype: "P",
+        tr_id: config.tr_id || trId,
+        custtype: config.custtype || "P",
         tr_cont: "",
       })
     );
@@ -270,11 +273,11 @@ async function fetchRealUsVolumePower(token: string, excd = "NAS"): Promise<KisU
       method: "GET",
       headers: {
         "content-type": "application/json; charset=utf-8",
-        authorization: `Bearer ${token}`,
+        authorization: config.authorization || `Bearer ${token}`,
         appkey: KIS_APPKEY || "",
         appsecret: KIS_APPSECRET || "",
-        tr_id: trId,
-        custtype: "P",
+        tr_id: config.tr_id || trId,
+        custtype: config.custtype || "P",
         tr_cont: "",
       },
     });
