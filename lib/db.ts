@@ -172,6 +172,14 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS us_top_rising_config (
+        key TEXT PRIMARY KEY,
+        top_n INTEGER NOT NULL DEFAULT 10,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS scanner_schedules (
         key TEXT PRIMARY KEY,
         start_time TEXT NOT NULL,
@@ -201,6 +209,12 @@ export async function ensureSchema() {
       VALUES
         ('us_updown_rate', '{"KEYB":"","AUTH":"","EXCD":"NAS","GUBN":"1","NDAY":"0","VOL_RANG":"5","tr_id":"HHDFS76290000","custtype":"P","content_type":"application/json; charset=utf-8","authorization":"Bearer"}'),
         ('us_volume_power', '{"KEYB":"","AUTH":"","EXCD":"NAS","NDAY":"0","VOL_RANG":"5","tr_id":"HHDFS76280000","custtype":"P","content_type":"application/json; charset=utf-8","authorization":"Bearer"}')
+      ON CONFLICT (key) DO NOTHING;
+    `);
+
+    await client.query(`
+      INSERT INTO us_top_rising_config (key, top_n)
+      VALUES ('default', 10)
       ON CONFLICT (key) DO NOTHING;
     `);
 

@@ -17,7 +17,8 @@ type PageKey =
   | "us-top-rising"
   | "top-rising"
   | "trading-intensity"
-  | "admin";
+  | "admin"
+  | "admin-kis-settings";
 
 export function PageNavigation({ current }: { current: PageKey }) {
   return (

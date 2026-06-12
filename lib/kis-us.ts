@@ -3,6 +3,7 @@ import { kisCache, topRisingStocks, usIntensityStocks } from "./schema";
 import { eq, inArray } from "drizzle-orm";
 import { getAccessToken, getKisMode, clearTokenCache } from "./kis";
 import { loadKisApiConfig } from "./kis-api-config";
+import { loadUsTopRisingCount } from "./kis-top-n";
 import { buildKisUsRequestDebug, pushKisUsDebugLog } from "./kis-us-debug";
 
 const KIS_APPKEY = process.env.KIS_APPKEY;
@@ -349,8 +350,7 @@ function filterMockUsRisingStocks(items: TopRisingStockItem[]): TopRisingStockIt
 }
 
 export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
-  // 사용자의 요청으로 해외 주식 기능 임시 비활성화
-  return [];
+  const topN = await loadUsTopRisingCount();
   const offset = getDynamicOffset(7);
 
   if (process.env.NODE_ENV === "test") {
@@ -396,7 +396,7 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
     if (token) {
       const realItems = await fetchRealUsVolumeRank(token as string, "NAS");
       if (realItems && realItems.length > 0) {
-        const mappedData = realItems.slice(0, 10).map((item, i) => {
+        const mappedData = realItems.slice(0, topN).map((item, i) => {
           const priceVal = parseFloat(item.last) || 0.0;
           const rateVal = parseFloat(item.rate) || 0.0;
           const isUp = rateVal >= 0;
