@@ -1,6 +1,10 @@
 # Development
 
 ## 2026-07-10
+- **[신규 페이지 구현]** SEC 원문 분석 API를 Next.js 화면에서 직접 실행하고 결과를 확인하는 관리자 전용 페이지를 추가했다.
+  - `app/admin/sec-test/page.tsx`: `/admin/sec-test` 라우트를 추가하고 관리자 세션을 확인한 뒤 SEC API 실행 화면을 렌더링한다.
+  - `components/admin-sec-api-runner.tsx`: SEC URL 입력, `/api/admin/sec-raw-test` 호출, URL 정규화 결과, metadata, events, AI evaluation, promptText, raw JSON 응답을 한 화면에서 확인할 수 있게 구현했다.
+  - `components/admin-dashboard.tsx`: 관리자 대시보드에 `SEC 테스트` 진입 링크를 추가했다.
 - **[기능 개선]** SEC 공시 AI 평가를 주가 급등 가능성 탐지용 최종 schema로 보강했다.
   - `lib/sec-ai-evaluator.ts`: `level` enum을 `bullish/bearish/neutral/mixed/insufficient_data`로 재정의하고, `eventRisks`, `analysisLimitations`, `requiresMarketData`, `recommendedNextChecks`를 추가했다.
   - `lib/sec-ai-evaluator.ts`: 시장 기대치, 공시 전후 주가/거래량, 기업 규모 비교 데이터가 없는 현재 SEC-only 분석에서는 `surpriseScore`, `alreadyPricedInRisk`, `materialityScore`를 null로 정규화하고 `requiresMarketData`를 true로 보정한다.

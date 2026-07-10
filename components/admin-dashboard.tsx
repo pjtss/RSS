@@ -75,6 +75,9 @@ export function AdminDashboard({ loggedIn }: AdminDashboardProps) {
             <a href="/admin/api-tests" className={styles.secondaryLink}>
               KIS 테스트
             </a>
+            <a href="/admin/sec-test" className={styles.secondaryLink}>
+              SEC 테스트
+            </a>
             <a href="/admin/schedules" className={styles.secondaryLink}>
               스케줄 설정
             </a>
