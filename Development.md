@@ -1,6 +1,12 @@
 # Development
 
 ## 2026-07-10
+- **[기능 개선]** SEC 공시 AI 평가를 단순 점수형 호재 판단에서 주가 급등 가능성 분석용 schema로 확장했다.
+  - `lib/sec-ai-evaluator.ts`: legacy `score` 중심 응답을 제거하고 `fundamentalScore`, `catalystScore`, `shortTermImpactScore`, `longTermImpactScore`, `noveltyScore`, `surpriseScore`, `alreadyPricedInRisk`, `materialityScore`, `facts`, `inferences`, `unknowns`, 객체형 `timeHorizon`을 요구하도록 OpenAI JSON schema와 시스템 지시문을 갱신했다.
+  - `lib/sec-parser-router.ts`: 8-K 이벤트 파싱을 router로 분리해 `Item 8.01`을 `OTHER_EVENT`로 구조화하고, 본 이벤트가 있을 때 보조 첨부 섹션인 `Item 9.01`은 AI 이벤트 payload에서 제외하도록 했다. 향후 10-K/10-Q/6-K/Form 4/13D/S-1 파서 확장을 위한 진입점도 마련했다.
+  - `lib/sec-ai-payload.ts`: AI payload에 `company`, `ticker`, `reportDate`, `events`, router 기반 `promptText`를 포함하도록 확장했다.
+  - `app/api/admin/sec-raw-test/route.ts`: 관리자 SEC 원문 테스트 응답에 router 기반 `events`와 새 `promptText`를 함께 반환한다.
+  - `lib/sec-ai-pipeline.test.ts`: Broadcom 8-K fixture로 URL query 제거, accession 추출, Item 8.01 이벤트 payload, 새 AI schema, facts/inferences/unknowns 분리, 객체형 timeHorizon을 검증했다.
 - **[기능 개선]** SEC 공시 원문 AI 분석용 파싱 모듈을 정리했다.
   - `lib/sec-document-parser.ts`를 추가해 SEC 원문 HTML에서 숨김 iXBRL 블록 제거, 숫자 HTML 엔티티 디코딩, 본문 텍스트 정규화, 8-K `Item` 섹션 추출, AI 전송용 텍스트 생성을 분리했다.
   - `app/api/admin/sec-raw-test/route.ts`는 더 이상 공시 HTML을 Atom 피드 파서(`parseSecItems`)에 넣지 않고, 원문 문서 전용 파서를 사용한다.
