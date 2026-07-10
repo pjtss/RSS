@@ -1,6 +1,11 @@
 # Development
 
 ## 2026-07-10
+- **[신규 기능 구현]** SEC 분석 결과를 Discord Webhook으로 전송하는 관리자 기능을 추가했다.
+  - `lib/discord-sec.ts`: SEC 분석 결과를 Discord 공식 Webhook payload(`content`, `embeds`, `allowed_mentions`)로 변환하고, `SEC_DISCORD_WEBHOOK_URL` 또는 `DISCORD_WEBHOOK_URL`로 전송하는 모듈을 추가했다.
+  - `app/api/admin/sec-discord/route.ts`: 관리자 세션을 확인한 뒤 SEC 분석 결과를 Discord로 전송하는 POST API를 추가했다.
+  - `components/admin-sec-api-runner.tsx`: `/admin/sec-test` 화면에 `Discord로 결과 전송` 버튼과 전송 성공/실패 상태 표시를 추가했다.
+  - `lib/discord-sec.test.ts`: Discord payload 생성과 webhook 전송 URL의 `wait=true` 처리를 검증했다.
 - **[신규 페이지 구현]** SEC 원문 분석 API를 Next.js 화면에서 직접 실행하고 결과를 확인하는 관리자 전용 페이지를 추가했다.
   - `app/admin/sec-test/page.tsx`: `/admin/sec-test` 라우트를 추가하고 관리자 세션을 확인한 뒤 SEC API 실행 화면을 렌더링한다.
   - `components/admin-sec-api-runner.tsx`: SEC URL 입력, `/api/admin/sec-raw-test` 호출, URL 정규화 결과, metadata, events, AI evaluation, promptText, raw JSON 응답을 한 화면에서 확인할 수 있게 구현했다.

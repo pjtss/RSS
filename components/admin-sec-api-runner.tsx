@@ -174,12 +174,15 @@ export function AdminSecApiRunner({ loggedIn: initialLoggedIn }: AdminSecApiRunn
   const [loggedIn, setLoggedIn] = useState(initialLoggedIn);
   const [secUrl, setSecUrl] = useState(DEFAULT_SEC_URL);
   const [loading, setLoading] = useState(false);
+  const [sendingDiscord, setSendingDiscord] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<SecTestResult | null>(null);
 
   async function runSecTest() {
     setLoading(true);
     setError(null);
+    setNotice(null);
     try {
       const res = await fetch(`/api/admin/sec-raw-test?url=${encodeURIComponent(secUrl)}`, { cache: "no-store" });
       const data = await res.json().catch(() => ({}));
@@ -191,6 +194,41 @@ export function AdminSecApiRunner({ loggedIn: initialLoggedIn }: AdminSecApiRunn
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
+    }
+  }
+
+  function buildDiscordResultPayload(source: SecTestResult) {
+    return {
+      request: source.request,
+      urlInfo: source.urlInfo,
+      document: {
+        metadata: source.document?.metadata,
+        events: source.document?.events,
+      },
+      aiEvaluation: source.aiEvaluation,
+    };
+  }
+
+  async function sendDiscord() {
+    if (!result) return;
+    setSendingDiscord(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch("/api/admin/sec-discord", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ result: buildDiscordResultPayload(result) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Discord 전송에 실패했습니다.");
+      }
+      setNotice("Discord 전송이 완료됐습니다.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSendingDiscord(false);
     }
   }
 
@@ -232,6 +270,7 @@ export function AdminSecApiRunner({ loggedIn: initialLoggedIn }: AdminSecApiRunn
         </div>
 
         {error && <div className={`${styles.alert} ${styles.error}`}>{error}</div>}
+        {notice && <div className={`${styles.alert} ${styles.on}`}>{notice}</div>}
 
         <section className={styles.card}>
           <div className={styles.cardHeader}>
@@ -259,6 +298,9 @@ export function AdminSecApiRunner({ loggedIn: initialLoggedIn }: AdminSecApiRunn
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button className={styles.toggleButton} onClick={() => void runSecTest()} disabled={loading || !secUrl.trim()}>
                 {loading ? "분석 중..." : "SEC API 실행"}
+              </button>
+              <button className={styles.toggleButton} onClick={() => void sendDiscord()} disabled={!result || loading || sendingDiscord}>
+                {sendingDiscord ? "Discord 전송 중..." : "Discord로 결과 전송"}
               </button>
               <button className={styles.logoutButton} onClick={() => setSecUrl(DEFAULT_SEC_URL)} disabled={loading}>
                 Broadcom 예시 입력
