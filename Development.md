@@ -1,6 +1,12 @@
 # Development
 
 ## 2026-07-10
+- **[기능 개선]** SEC 공시 AI 평가를 주가 급등 가능성 탐지용 최종 schema로 보강했다.
+  - `lib/sec-ai-evaluator.ts`: `level` enum을 `bullish/bearish/neutral/mixed/insufficient_data`로 재정의하고, `eventRisks`, `analysisLimitations`, `requiresMarketData`, `recommendedNextChecks`를 추가했다.
+  - `lib/sec-ai-evaluator.ts`: 시장 기대치, 공시 전후 주가/거래량, 기업 규모 비교 데이터가 없는 현재 SEC-only 분석에서는 `surpriseScore`, `alreadyPricedInRisk`, `materialityScore`를 null로 정규화하고 `requiresMarketData`를 true로 보정한다.
+  - `lib/sec-ai-evaluator.ts`: OpenAI가 문자열 점수, legacy enum, generic risk, 비 JSON 응답을 반환해도 점수/enum 정규화, generic risk 제거, rawText 보존 실패 처리를 수행하도록 방어 로직을 추가했다.
+  - `lib/sec-parser-router.ts`: promptText에서 `Item 8.01 Other Events` 제목 중복이 생기지 않도록 이벤트 본문에서 섹션 heading을 제거하고, `Material filing events` 형식으로 이벤트 메타데이터와 본문을 분리했다.
+  - `lib/sec-ai-pipeline.test.ts`: Broadcom 공식 테스트 URL(`d84378d8k.htm`) 기준으로 URL 정규화, documentFile, promptText 중복 제거, null 필드, enum fallback, JSON parse failure rawText 보존을 검증했다.
 - **[기능 개선]** SEC 공시 AI 평가를 단순 점수형 호재 판단에서 주가 급등 가능성 분석용 schema로 확장했다.
   - `lib/sec-ai-evaluator.ts`: legacy `score` 중심 응답을 제거하고 `fundamentalScore`, `catalystScore`, `shortTermImpactScore`, `longTermImpactScore`, `noveltyScore`, `surpriseScore`, `alreadyPricedInRisk`, `materialityScore`, `facts`, `inferences`, `unknowns`, 객체형 `timeHorizon`을 요구하도록 OpenAI JSON schema와 시스템 지시문을 갱신했다.
   - `lib/sec-parser-router.ts`: 8-K 이벤트 파싱을 router로 분리해 `Item 8.01`을 `OTHER_EVENT`로 구조화하고, 본 이벤트가 있을 때 보조 첨부 섹션인 `Item 9.01`은 AI 이벤트 payload에서 제외하도록 했다. 향후 10-K/10-Q/6-K/Form 4/13D/S-1 파서 확장을 위한 진입점도 마련했다.

@@ -7,6 +7,10 @@ export type SecParsedEvent = {
   text: string;
 };
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function normalizeFormType(value: string) {
   return value.toUpperCase().trim();
 }
@@ -34,8 +38,22 @@ function parse8KEvents(sections: SecDocumentSection[]): SecParsedEvent[] {
     type: map8KItemType(section.item),
     item: section.item,
     title: section.title || `Item ${section.item}`,
-    text: section.text,
+    text: stripSectionHeading(section),
   }));
+}
+
+function stripSectionHeading(section: SecDocumentSection) {
+  let text = section.text.trim();
+  const itemPattern = escapeRegExp(section.item);
+  const title = section.title.trim();
+
+  if (title) {
+    const titlePattern = escapeRegExp(title).replace(/\s+/g, "\\s+");
+    text = text.replace(new RegExp(`^Item\\s+${itemPattern}\\s+${titlePattern}\\.?\\s*`, "i"), "").trim();
+  }
+
+  text = text.replace(new RegExp(`^Item\\s+${itemPattern}\\s+[^\\n.]{1,160}\\.?\\s*`, "i"), "").trim();
+  return text || section.text.trim();
 }
 
 function parseGenericEvents(fullText: string, sections: SecDocumentSection[]): SecParsedEvent[] {
@@ -79,10 +97,18 @@ export function buildSecEventsPromptText(metadata: SecDocumentMetadata, events: 
 
   const eventText = events
     .map((event, index) => {
-      const item = event.item ? `Item ${event.item} ` : "";
-      return [`Event ${index + 1}: ${event.type}`, `${item}${event.title}`.trim(), event.text].join("\n");
+      return [
+        `Event ${index + 1}`,
+        `Type: ${event.type}`,
+        event.item ? `Item: ${event.item}` : "",
+        `Title: ${event.title}`,
+        "Text:",
+        event.text,
+      ]
+        .filter(Boolean)
+        .join("\n");
     })
     .join("\n\n");
 
-  return [...header, "", "Material filing text:", eventText].join("\n");
+  return [...header, "", "Material filing events:", "", eventText].join("\n");
 }

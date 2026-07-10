@@ -4,7 +4,7 @@ import { buildSecAiPayloadFromDocument } from "./sec-ai-payload";
 import { parseSecFilingUrl } from "./sec-filing-url";
 
 const broadcomUrl =
-  "https://www.sec.gov/Archives/edgar/data/1730168/000119312526295589/d123456d8k.htm?utm_source=test#tracking";
+  "https://www.sec.gov/Archives/edgar/data/1730168/000119312526295589/d84378d8k.htm?utm_source=chatgpt.com";
 
 const broadcomHtml = `
   <html>
@@ -52,11 +52,12 @@ describe("SEC AI pipeline", () => {
     const payload = buildBroadcomPayload();
 
     expect(urlInfo.canonicalUrl).toBe(
-      "https://www.sec.gov/Archives/edgar/data/1730168/000119312526295589/d123456d8k.htm",
+      "https://www.sec.gov/Archives/edgar/data/1730168/000119312526295589/d84378d8k.htm",
     );
     expect(urlInfo.cik).toBe("1730168");
     expect(urlInfo.accessionNumber).toBe("0001193125-26-295589");
     expect(urlInfo.accessionCompact).toBe("000119312526295589");
+    expect(urlInfo.documentFile).toBe("d84378d8k.htm");
     expect(payload.formType).toBe("8-K");
     expect(payload.company).toBe("Broadcom Inc.");
     expect(payload.ticker).toBe("AVGO");
@@ -68,7 +69,8 @@ describe("SEC AI pipeline", () => {
         title: "Other Events",
       }),
     ]);
-    expect(payload.text).toContain("Item 8.01 Other Events");
+    expect(payload.text).not.toContain("Item 8.01 Other Events");
+    expect(payload.text).toContain("Broadcom Inc.");
     expect(payload.text).not.toContain("Financial Statements and Exhibits");
     expect(payload.text).not.toContain("SIGNATURE");
     expect(payload.promptText).toContain("Company: Broadcom Inc.");
@@ -76,22 +78,28 @@ describe("SEC AI pipeline", () => {
     expect(payload.promptText).toContain("Form: 8-K");
     expect(payload.promptText).toContain("Report date: July 6, 2026");
     expect(payload.promptText).toContain("Accession: 0001193125-26-295589");
-    expect(payload.promptText).toContain("Event 1: OTHER_EVENT");
+    expect(payload.promptText).toContain("Material filing events:");
+    expect(payload.promptText).toContain("Event 1");
+    expect(payload.promptText).toContain("Type: OTHER_EVENT");
+    expect(payload.promptText).toContain("Item: 8.01");
+    expect(payload.promptText).toContain("Title: Other Events");
+    expect(payload.promptText).toContain("Text:");
+    expect(payload.promptText.match(/Other Events/g)).toHaveLength(1);
   });
 
-  it("requests the expanded AI schema and preserves fact/inference/unknown separation", async () => {
+  it("requests the final AI schema and normalizes market-data-only fields", async () => {
     const payload = buildBroadcomPayload();
     const mockEvaluation = {
-      level: "bullish",
-      fundamentalScore: 85,
-      catalystScore: 70,
-      shortTermImpactScore: 60,
-      longTermImpactScore: 85,
-      confidence: 85,
-      noveltyScore: 75,
+      level: "strong_bullish",
+      fundamentalScore: "70",
+      catalystScore: 65,
+      shortTermImpactScore: 45,
+      longTermImpactScore: 75,
+      confidence: 80,
+      noveltyScore: 60,
       surpriseScore: 60,
       alreadyPricedInRisk: 35,
-      materialityScore: null,
+      materialityScore: 50,
       summary:
         "브로드컴과 애플의 장기 기술 협력 확대는 장기 펀더멘털에 긍정적이지만 계약 규모가 공개되지 않아 단기 급등 판단에는 제한이 있다.",
       facts: [
@@ -103,14 +111,19 @@ describe("SEC AI pipeline", () => {
         "계약 금액이 공개되지 않았다.",
         "최소 구매량이 공개되지 않았다.",
         "예상 매출 기여도가 공개되지 않았다.",
+        "시장 기대치 데이터가 없다.",
+        "공시 전후 주가 및 거래량 데이터가 없다.",
       ],
-      risks: ["시장 기대치가 이미 일부 반영되었을 가능성이 있다."],
+      eventRisks: ["기술 변화 위험", "경쟁사 등장 위험"],
+      analysisLimitations: ["계약 금액이 공개되지 않아 기업 규모 대비 재무적 중요도를 판단하기 어렵다."],
       marketImpact: "장기적으로는 긍정적이나 단기 급등 촉매 강도는 계약 규모 부재로 제한된다.",
       timeHorizon: {
-        immediate: "positive",
+        immediate: "unknown",
         shortTerm: "positive",
         longTerm: "strong_positive",
       },
+      requiresMarketData: false,
+      recommendedNextChecks: ["공시 직후 거래량 변화 확인"],
     };
 
     const fetchMock = vi.fn().mockResolvedValue(
@@ -132,23 +145,59 @@ describe("SEC AI pipeline", () => {
     expect(schema.required).toContain("facts");
     expect(schema.required).toContain("inferences");
     expect(schema.required).toContain("unknowns");
+    expect(schema.required).toContain("eventRisks");
+    expect(schema.required).toContain("analysisLimitations");
+    expect(schema.required).toContain("requiresMarketData");
+    expect(schema.required).toContain("recommendedNextChecks");
     expect(schema.required).not.toContain("score");
+    expect(schema.required).not.toContain("risks");
+    expect(schema.properties.level.enum).toEqual(["bullish", "bearish", "neutral", "mixed", "insufficient_data"]);
     expect(schema.properties.timeHorizon.required).toEqual(["immediate", "shortTerm", "longTerm"]);
-    expect(body.instructions).toContain("Good long-term news is not the same as a short-term price spike catalyst.");
-    expect(body.instructions).toContain("Put only text explicitly stated in the filing into facts.");
-    expect(body.input).toContain("Event 1: OTHER_EVENT");
+    expect(body.instructions).toContain("좋은 뉴스와 단기 급등 뉴스는 다르다.");
+    expect(body.instructions).toContain("generic risk를 만들지 마라.");
+    expect(body.input).toContain("Events metadata:");
+    expect(body.input).toContain("Type: OTHER_EVENT");
 
     expect(result.skipped).toBe(false);
     if (!result.skipped) {
+      expect(result.evaluation.level).toBe("bullish");
+      expect(result.evaluation.fundamentalScore).toBe(70);
+      expect(result.evaluation.surpriseScore).toBeNull();
+      expect(result.evaluation.alreadyPricedInRisk).toBeNull();
       expect(result.evaluation.materialityScore).toBeNull();
       expect(result.evaluation.facts[0]).toContain("Broadcom Inc. and Apple Inc.");
       expect(result.evaluation.inferences[0]).toContain("가능성");
       expect(result.evaluation.unknowns).toContain("계약 금액이 공개되지 않았다.");
+      expect(result.evaluation.eventRisks).toEqual([]);
+      expect(result.evaluation.analysisLimitations).toContain("시장 기대치 데이터가 없어 surpriseScore를 계산할 수 없다.");
+      expect(result.evaluation.analysisLimitations).toContain(
+        "공시 전후 주가와 거래량 데이터가 없어 alreadyPricedInRisk를 계산할 수 없다.",
+      );
+      expect(result.evaluation.requiresMarketData).toBe(true);
+      expect(result.evaluation.recommendedNextChecks.length).toBeGreaterThan(0);
       expect(result.evaluation.timeHorizon).toEqual({
-        immediate: "positive",
+        immediate: "insufficient_data",
         shortTerm: "positive",
         longTerm: "strong_positive",
       });
+    }
+  });
+
+  it("preserves raw text when the AI output is not JSON", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ output_text: "not-json" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await evaluateSecFilingWithAi(buildBroadcomPayload());
+
+    expect(result.skipped).toBe(true);
+    if (result.skipped) {
+      expect(result.reason).toBe("AI evaluation JSON parse failed");
+      expect(result.rawText).toBe("not-json");
     }
   });
 });
