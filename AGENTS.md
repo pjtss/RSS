@@ -2,6 +2,16 @@
 
 ## Improvement Log
 
+### 2026-07-10
+- **SEC 원문 HTML과 Atom 피드 XML은 파서를 분리해야 함**:
+  - **실수**: SEC 원문 HTML을 테스트하면서 기존 Atom 피드 파서(`parseSecItems`)를 그대로 호출해 `parsed.items`가 빈 배열이 되고, AI payload도 생성되지 않았다.
+  - **원인**: SEC 피드 항목 수집과 개별 공시 원문 분석의 입력 형식이 다르다는 점을 모듈 경계에 반영하지 못했다.
+  - **해결 및 재발 방지**: SEC 원문 HTML은 `sec-document-parser`에서 별도로 처리한다. 피드 수집, 원문 fetch, HTML 정규화, Item 섹션 추출, AI payload 생성은 각각 독립 모듈로 유지한다.
+- **SEC 원문 텍스트는 HTML 엔티티와 iXBRL 숨김 블록을 정규화해야 함**:
+  - **실수**: 원문 텍스트에 `&#160;`, `&#8217;`, 숨김 iXBRL 값이 섞여 AI 분석에 불필요한 노이즈가 들어갔다.
+  - **원인**: 단순 태그 제거만으로 SEC Inline XBRL 문서를 분석 가능한 문장 형태로 바꿀 수 있다고 가정했다.
+  - **해결 및 재발 방지**: 숫자/기본 HTML 엔티티를 디코딩하고, `<ix:header>`와 `display:none` 블록을 제거한 뒤, 8-K `Item` 섹션 중심으로 AI 전송용 텍스트를 구성한다.
+
 ### 2026-05-27
 - **KIS 토큰 캐시 초기화는 인메모리와 DB를 함께 지워야 함**:
   - **실수**: `clearTokenCache()`가 인메모리 토큰만 초기화하고 `kis_tokens` DB 캐시는 남겨 두어, 다음 `getAccessToken()` 호출이 오래된 DB 토큰을 다시 읽어 AUTH 오류를 반복시킬 수 있었다.

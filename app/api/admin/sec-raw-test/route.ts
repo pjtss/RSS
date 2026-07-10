@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/admin-auth";
-import { buildSecAiPayload } from "@/lib/sec-ai-payload";
+import { buildSecAiPayloadFromDocument } from "@/lib/sec-ai-payload";
+import { prepareSecDocument } from "@/lib/sec-document-parser";
 import { fetchSecRawDocument } from "@/lib/sec-raw-document";
-import { parseSecItems } from "@/lib/rss";
+
+function isAllowedSecUrl(value: string) {
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    return parsed.protocol === "https:" && (hostname === "sec.gov" || hostname.endsWith(".sec.gov"));
+  } catch {
+    return false;
+  }
+}
 
 export async function GET(request: Request) {
   if (!(await requireAdminSession())) {
@@ -14,17 +24,13 @@ export async function GET(request: Request) {
   if (!sourceUrl) {
     return NextResponse.json({ error: "url query parameter is required" }, { status: 400 });
   }
+  if (!isAllowedSecUrl(sourceUrl)) {
+    return NextResponse.json({ error: "SEC 도메인의 HTTPS URL만 허용됩니다." }, { status: 400 });
+  }
 
   const document = await fetchSecRawDocument(sourceUrl);
-  const today = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-  const parsed = parseSecItems(document.html, today);
-  const firstItem = parsed.items[0] || null;
-  const aiPayload = firstItem ? await buildSecAiPayload(firstItem) : null;
+  const prepared = prepareSecDocument(document.html);
+  const aiPayload = buildSecAiPayloadFromDocument(sourceUrl, document.html);
 
   return NextResponse.json({
     ok: true,
@@ -34,10 +40,15 @@ export async function GET(request: Request) {
       url: sourceUrl,
     },
     document: {
-      html: document.html,
-      text: document.text,
+      htmlLength: document.html.length,
+      htmlPreview: document.html.slice(0, 2000),
+      textLength: prepared.fullText.length,
+      text: prepared.fullText,
+      aiTextLength: prepared.aiText.length,
+      aiText: prepared.aiText,
+      metadata: prepared.metadata,
+      sections: prepared.sections,
     },
-    parsed,
     aiPayload,
   });
 }

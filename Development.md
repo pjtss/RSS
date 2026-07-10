@@ -1,5 +1,12 @@
 # Development
 
+## 2026-07-10
+- **[기능 개선]** SEC 공시 원문 AI 분석용 파싱 모듈을 정리했다.
+  - `lib/sec-document-parser.ts`를 추가해 SEC 원문 HTML에서 숨김 iXBRL 블록 제거, 숫자 HTML 엔티티 디코딩, 본문 텍스트 정규화, 8-K `Item` 섹션 추출, AI 전송용 텍스트 생성을 분리했다.
+  - `app/api/admin/sec-raw-test/route.ts`는 더 이상 공시 HTML을 Atom 피드 파서(`parseSecItems`)에 넣지 않고, 원문 문서 전용 파서를 사용한다.
+  - 관리자 테스트 응답은 전체 HTML 대신 `htmlPreview`, `text`, `aiText`, `metadata`, `sections`를 반환해 모달 확인과 AI 전송 준비가 쉬워졌다.
+  - `lib/sec-request-headers.ts`를 추가해 SEC 요청의 `User-Agent` 헤더 정책을 원문/피드 요청에서 함께 사용하도록 분리했다.
+
 ## 2026-06-18
 - **[신규 기능 구현]** 해외주식 거래대금 추이 페이지를 복수 종목 동시 조회 방식으로 추가했다.
   - `app/scanners/us/turnover-trend/page.tsx`에 일반 페이지를 신설하고, `components/page-navigation.tsx`에 라우팅 링크를 추가했다.

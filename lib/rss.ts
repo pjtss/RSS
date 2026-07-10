@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
 import { calculateDartScore } from "./scoring";
+import { createSecRequestHeaders } from "./sec-request-headers";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -14,7 +15,6 @@ const DART_URL = "https://dart.fss.or.kr/api/todayRSS.xml";
 const SEC_PAGE_SIZE = 100;
 const SEC_BASE_URL =
   "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&company=&count=100&dateb=&output=atom&owner=include";
-const SEC_USER_AGENT = "MySecWatcher/1.0 your_email@example.com";
 
 // SEC 관련 키워드는 우선 유지 (필요 시 별도 스코어링 모듈화 가능)
 const SEC_POSITIVE_KEYWORDS = [
@@ -313,10 +313,7 @@ export async function fetchSecFeed(): Promise<FeedPayload<SecItem>> {
   for (let start = 0; start <= 1000; start += SEC_PAGE_SIZE) {
     const response = await fetch(`${SEC_BASE_URL}&start=${start}`, {
       cache: "no-store",
-      headers: {
-        Accept: "application/atom+xml, application/xml, text/xml",
-        "User-Agent": SEC_USER_AGENT,
-      },
+      headers: createSecRequestHeaders("application/atom+xml, application/xml, text/xml"),
     });
 
     if (!response.ok) {
