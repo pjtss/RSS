@@ -87,6 +87,23 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS us_turnover_ratio_snapshots (
+        id BIGSERIAL PRIMARY KEY,
+        code TEXT NOT NULL,
+        name TEXT NOT NULL DEFAULT '',
+        market_cap DOUBLE PRECISION NOT NULL,
+        trading_value DOUBLE PRECISION NOT NULL,
+        turnover_ratio DOUBLE PRECISION NOT NULL,
+        observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (code, observed_at)
+      );
+    `);
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS us_turnover_ratio_snapshots_code_observed_idx
+      ON us_turnover_ratio_snapshots (code, observed_at DESC);
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS sec_automation_events (
         external_id TEXT PRIMARY KEY,
         status TEXT NOT NULL,

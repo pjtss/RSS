@@ -1,4 +1,5 @@
 import type { UsTurnoverRatioItem } from "@/lib/us-turnover-ratio";
+import type { UsTurnoverRatioItemWithTrend } from "@/lib/us-turnover-ratio-trend";
 import { formatKoreanAmount } from "@/lib/korean-number-format";
 
 const SUCCESS_STATUSES = new Set([200, 204]);
@@ -7,7 +8,7 @@ export function isUsTurnoverRatioDiscordConfigured() {
   return Boolean(process.env.US_TURNOVER_RATIO_DISCORD_WEBHOOK_URL?.trim());
 }
 
-export function buildUsTurnoverRatioDiscordPayload(items: UsTurnoverRatioItem[]) {
+export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioItem | UsTurnoverRatioItemWithTrend>) {
   return {
     content: `시총 대비 거래대금 1~10% 종목 ${items.length}건을 감지했습니다.`,
     username: "STOCKMAN AMS TURNOVER",
@@ -22,6 +23,11 @@ export function buildUsTurnoverRatioDiscordPayload(items: UsTurnoverRatioItem[])
         { name: "시총 대비 거래대금", value: `${item.turnoverRatio.toFixed(2)}%`, inline: true },
         { name: "시가총액", value: formatKoreanAmount(item.marketCap), inline: true },
         { name: "당일 거래대금", value: formatKoreanAmount(item.tradingValue), inline: true },
+        ...( "trend" in item ? [
+          { name: "1분 변화", value: item.trend.oneMinuteIncrease === null ? "데이터 수집 중" : `${item.trend.oneMinuteIncrease >= 0 ? "+" : ""}${item.trend.oneMinuteIncrease.toFixed(2)}%p`, inline: true },
+          { name: "3분 변화", value: item.trend.threeMinuteIncrease === null ? "데이터 수집 중" : `${item.trend.threeMinuteIncrease >= 0 ? "+" : ""}${item.trend.threeMinuteIncrease.toFixed(2)}%p`, inline: true },
+          { name: "5분 변화", value: item.trend.fiveMinuteIncrease === null ? "데이터 수집 중" : `${item.trend.fiveMinuteIncrease >= 0 ? "+" : ""}${item.trend.fiveMinuteIncrease.toFixed(2)}%p`, inline: true },
+        ] : []),
       ],
       timestamp: new Date().toISOString(),
       footer: { text: "STOCKMAN AMS Turnover Ratio Automation" },

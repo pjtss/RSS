@@ -66,9 +66,17 @@ async function enrichWithPriceDetails(output: unknown[], market: string) {
       const detail = await fetchKisUsPriceDetail({ code, market });
       if (detail?.ok) debug.priceDetailSuccessCount += 1;
       const outputDetail = getKisUsPriceDetailOutput(detail?.parsed);
-      result[index] = { ...item, ...outputDetail, symb: item.symb ?? code };
-      const marketCap = firstNumber(outputDetail, ["tomv", "marketCap", "mcap"]);
-      const tradingValue = firstNumber(outputDetail, ["tamt", "tamnt", "amount", "tradingValue"]);
+      const detailMarketCap = firstNumber(outputDetail, ["tomv", "mcap"]);
+      const detailTradingValue = firstNumber(outputDetail, ["tamt", "tamnt"]);
+      result[index] = {
+        ...item,
+        ...outputDetail,
+        symb: item.symb ?? code,
+        __priceDetailMarketCap: detailMarketCap,
+        __priceDetailTradingValue: detailTradingValue,
+      };
+      const marketCap = detailMarketCap;
+      const tradingValue = detailTradingValue;
       const turnoverRatio = marketCap !== null && tradingValue !== null ? (tradingValue / marketCap) * 100 : null;
       debug.details[index] = { code, marketCap, tradingValue, turnoverRatio, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 10 };
     }
@@ -87,8 +95,8 @@ export function filterUsTurnoverRatioItems(parsed: unknown, limit = 100): UsTurn
     if (!raw || typeof raw !== "object") return [];
     const item = raw as Record<string, unknown>;
     if (isInverseOrLeveraged(item)) return [];
-    const marketCap = firstNumber(item, ["tomv", "marketCap", "mcap"]);
-    const tradingValue = firstNumber(item, ["tamt", "tamnt", "amount", "tradingValue"]);
+    const marketCap = numberValue(item.__priceDetailMarketCap);
+    const tradingValue = numberValue(item.__priceDetailTradingValue);
     if (marketCap === null || tradingValue === null) return [];
 
     const turnoverRatio = (tradingValue / marketCap) * 100;

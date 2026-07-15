@@ -1,4 +1,4 @@
-import { pgTable, bigserial, text, timestamp, date, boolean, integer, uniqueIndex, check, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, bigserial, text, timestamp, date, boolean, integer, uniqueIndex, check, jsonb, doublePrecision } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 // 1. DART 및 SEC 공시 이력 엔티티
@@ -38,6 +38,20 @@ export const alertEvents = pgTable(
   (table) => [
     uniqueIndex("alert_events_source_external_id_unique").on(table.source, table.externalId),
   ]
+);
+
+export const usTurnoverRatioSnapshots = pgTable(
+  "us_turnover_ratio_snapshots",
+  {
+    id: bigserial("id", { mode: "number" }).primaryKey(),
+    code: text("code").notNull(),
+    name: text("name").notNull().default(""),
+    marketCap: doublePrecision("market_cap").notNull(),
+    tradingValue: doublePrecision("trading_value").notNull(),
+    turnoverRatio: doublePrecision("turnover_ratio").notNull(),
+    observedAt: timestamp("observed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("us_turnover_ratio_snapshot_code_time").on(table.code, table.observedAt)]
 );
 
 export const secAutomationEvents = pgTable("sec_automation_events", {
