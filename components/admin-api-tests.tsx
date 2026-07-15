@@ -155,9 +155,15 @@ export function AdminApiTests() {
           <div className={styles.resultHeader}>
             <span>HTTP 상태</span>
             <strong className={result.ok === false ? styles.resultError : styles.resultSuccess}>
-              {result.status ?? "완료"}
+              {String(result.status ?? "완료")}
             </strong>
           </div>
+          {Boolean(activeTest.key === "us_turnover_ratio" && result.debug && typeof result.debug === "object") && (
+            <div className={styles.resultHeader}>
+              <span>필터링 흐름</span>
+              <strong>{String((result.debug as any).sourceCount ?? 0)}개 TOP 100 → price-detail {String((result.debug as any).priceDetailSuccessCount ?? 0)}건 성공 → 최종 {Array.isArray((result as any).filtered) ? (result as any).filtered.length : 0}개</strong>
+            </div>
+          )}
           <pre className={styles.codeBlock}>{JSON.stringify(result, null, 2)}</pre>
         </AdminModal>
       )}

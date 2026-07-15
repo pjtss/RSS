@@ -12,6 +12,19 @@ export type UsTurnoverRatioItem = {
   turnoverRatio: number;
 };
 
+export type UsTurnoverRatioDebug = {
+  sourceCount: number;
+  priceDetailAttemptCount: number;
+  priceDetailSuccessCount: number;
+  details: Array<{
+    code: string;
+    marketCap: number | null;
+    tradingValue: number | null;
+    turnoverRatio: number | null;
+    included: boolean;
+  }>;
+};
+
 function numberValue(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const parsed = Number(String(value ?? "").replace(/,/g, "").replace(/%/g, "").trim());
@@ -28,6 +41,7 @@ function firstNumber(item: Record<string, unknown>, keys: string[]) {
 
 async function enrichWithPriceDetails(output: unknown[], market: string) {
   const result: unknown[] = [];
+  const debug: UsTurnoverRatioDebug = { sourceCount: output.length, priceDetailAttemptCount: 0, priceDetailSuccessCount: 0, details: [] };
   for (const raw of output) {
     if (!raw || typeof raw !== "object") continue;
     const item = raw as Record<string, unknown>;
@@ -36,11 +50,17 @@ async function enrichWithPriceDetails(output: unknown[], market: string) {
       result.push(item);
       continue;
     }
+    debug.priceDetailAttemptCount += 1;
     const detail = await fetchKisUsPriceDetail({ code, market });
+    if (detail?.ok) debug.priceDetailSuccessCount += 1;
     const outputDetail = getKisUsPriceDetailOutput(detail?.parsed);
     result.push({ ...item, ...outputDetail, symb: item.symb ?? code });
+    const marketCap = firstNumber(outputDetail, ["tomv", "marketCap", "mcap"]);
+    const tradingValue = firstNumber(outputDetail, ["tamt", "tamnt", "amount", "tradingValue"]);
+    const turnoverRatio = marketCap !== null && tradingValue !== null ? (tradingValue / marketCap) * 100 : null;
+    debug.details.push({ code, marketCap, tradingValue, turnoverRatio, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 5 });
   }
-  return result;
+  return { output: result, debug };
 }
 
 export function filterUsTurnoverRatioItems(parsed: unknown, limit = 100): UsTurnoverRatioItem[] {
@@ -75,9 +95,10 @@ export async function fetchUsTurnoverRatioScanner(request: KisUsTopRisingApiRequ
   if (!result) return null;
   const parsed = result.response.parsed as { output?: unknown };
   const output = Array.isArray(parsed?.output) ? parsed.output.slice(0, 100) : [];
-  const enrichedOutput = await enrichWithPriceDetails(output, request.excd || "AMS");
+  const enriched = await enrichWithPriceDetails(output, request.excd || "AMS");
   return {
     ...result,
-    filtered: filterUsTurnoverRatioItems({ output: enrichedOutput }, 100),
+    filtered: filterUsTurnoverRatioItems({ output: enriched.output }, 100),
+    debug: enriched.debug,
   };
 }
