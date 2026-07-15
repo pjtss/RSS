@@ -40,26 +40,35 @@ function firstNumber(item: Record<string, unknown>, keys: string[]) {
 }
 
 async function enrichWithPriceDetails(output: unknown[], market: string) {
-  const result: unknown[] = [];
+  const result: unknown[] = Array.from({ length: output.length });
   const debug: UsTurnoverRatioDebug = { sourceCount: output.length, priceDetailAttemptCount: 0, priceDetailSuccessCount: 0, details: [] };
-  for (const raw of output) {
-    if (!raw || typeof raw !== "object") continue;
-    const item = raw as Record<string, unknown>;
-    const code = String(item.symb ?? item.rsym ?? item.code ?? "").trim();
-    if (!code) {
-      result.push(item);
-      continue;
+  const concurrency = 8;
+  let nextIndex = 0;
+  async function worker() {
+    while (true) {
+      const index = nextIndex++;
+      if (index >= output.length) return;
+      const raw = output[index];
+      if (!raw || typeof raw !== "object") continue;
+      const item = raw as Record<string, unknown>;
+      const code = String(item.symb ?? item.rsym ?? item.code ?? "").trim();
+      if (!code) {
+        result[index] = item;
+        continue;
+      }
+      debug.priceDetailAttemptCount += 1;
+      const detail = await fetchKisUsPriceDetail({ code, market });
+      if (detail?.ok) debug.priceDetailSuccessCount += 1;
+      const outputDetail = getKisUsPriceDetailOutput(detail?.parsed);
+      result[index] = { ...item, ...outputDetail, symb: item.symb ?? code };
+      const marketCap = firstNumber(outputDetail, ["tomv", "marketCap", "mcap"]);
+      const tradingValue = firstNumber(outputDetail, ["tamt", "tamnt", "amount", "tradingValue"]);
+      const turnoverRatio = marketCap !== null && tradingValue !== null ? (tradingValue / marketCap) * 100 : null;
+      debug.details[index] = { code, marketCap, tradingValue, turnoverRatio, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 5 };
     }
-    debug.priceDetailAttemptCount += 1;
-    const detail = await fetchKisUsPriceDetail({ code, market });
-    if (detail?.ok) debug.priceDetailSuccessCount += 1;
-    const outputDetail = getKisUsPriceDetailOutput(detail?.parsed);
-    result.push({ ...item, ...outputDetail, symb: item.symb ?? code });
-    const marketCap = firstNumber(outputDetail, ["tomv", "marketCap", "mcap"]);
-    const tradingValue = firstNumber(outputDetail, ["tamt", "tamnt", "amount", "tradingValue"]);
-    const turnoverRatio = marketCap !== null && tradingValue !== null ? (tradingValue / marketCap) * 100 : null;
-    debug.details.push({ code, marketCap, tradingValue, turnoverRatio, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 5 });
   }
+  await Promise.all(Array.from({ length: Math.min(concurrency, output.length) }, () => worker()));
+  debug.details = debug.details.filter(Boolean);
   return { output: result, debug };
 }
 
