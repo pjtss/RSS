@@ -64,7 +64,8 @@ async function enrichWithPriceDetails(output: unknown[], market: string) {
 }
 
 export function filterUsTurnoverRatioItems(parsed: unknown, limit = 100): UsTurnoverRatioItem[] {
-  const output = (parsed as { output?: unknown })?.output;
+  const response = parsed as { output?: unknown; output1?: unknown; output2?: unknown };
+  const output = response?.output ?? response?.output2 ?? response?.output1;
   if (!Array.isArray(output)) return [];
 
   return output.flatMap((raw, index) => {
@@ -93,8 +94,9 @@ export function filterUsTurnoverRatioItems(parsed: unknown, limit = 100): UsTurn
 export async function fetchUsTurnoverRatioScanner(request: KisUsTopRisingApiRequest = {}) {
   const result = await fetchKisUsTopRisingApi(request);
   if (!result) return null;
-  const parsed = result.response.parsed as { output?: unknown };
-  const output = Array.isArray(parsed?.output) ? parsed.output.slice(0, 100) : [];
+  const parsed = result.response.parsed as { output?: unknown; output1?: unknown; output2?: unknown };
+  const source = parsed?.output ?? parsed?.output2 ?? parsed?.output1;
+  const output = Array.isArray(source) ? source.slice(0, 100) : [];
   const enriched = await enrichWithPriceDetails(output, request.excd || "AMS");
   return {
     ...result,
