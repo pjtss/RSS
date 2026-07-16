@@ -4,36 +4,31 @@ import { formatKoreanAmount } from "@/lib/korean-number-format";
 
 const SUCCESS_STATUSES = new Set([200, 204]);
 
+function formatWholeMan(value: number) {
+  return formatKoreanAmount(Math.floor(value / 10_000) * 10_000);
+}
+
 export function isUsTurnoverRatioDiscordConfigured() {
   return Boolean(process.env.US_TURNOVER_RATIO_DISCORD_WEBHOOK_URL?.trim());
 }
 
 export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioItem | UsTurnoverRatioItemWithTrend>) {
+  const firstTicker = items[0]?.code || "미국 종목";
   return {
-    content: `시총 대비 거래대금 1~10% 종목 ${items.length}건을 감지했습니다.`,
-    username: "STOCKMAN AMS TURNOVER",
+    content: `${firstTicker}\n미국 거래대금 조건 충족 ${items.length}건`,
+    username: "STOCKMAN US TURNOVER",
     allowed_mentions: { parse: [] as string[] },
     embeds: items.slice(0, 10).map((item) => ({
-      title: `${item.name || item.code} (${item.code})`,
-      description: "미국 상승률 TOP 100 중 시총 대비 거래대금 조건을 충족했습니다.",
       color: 0x00ffa3,
       fields: [
         { name: "등락률", value: item.changeRate || "-", inline: true },
-        { name: "현재가", value: item.price || "-", inline: true },
         { name: "시총 대비 거래대금", value: `${item.turnoverRatio.toFixed(2)}%`, inline: true },
-        { name: "시가총액", value: formatKoreanAmount(item.marketCap), inline: true },
-        { name: "당일 거래대금", value: formatKoreanAmount(item.tradingValue), inline: true },
-        ...( "trend" in item ? [
-          { name: "1분 거래대금 변화", value: item.trend.oneMinuteTradingValueIncrease === null ? "데이터 수집 중" : `${item.trend.oneMinuteTradingValueIncrease >= 0 ? "+" : ""}${formatKoreanAmount(item.trend.oneMinuteTradingValueIncrease)}`, inline: true },
-          { name: "3분 거래대금 변화", value: item.trend.threeMinuteTradingValueIncrease === null ? "데이터 수집 중" : `${item.trend.threeMinuteTradingValueIncrease >= 0 ? "+" : ""}${formatKoreanAmount(item.trend.threeMinuteTradingValueIncrease)}`, inline: true },
-          { name: "5분 거래대금 변화", value: item.trend.fiveMinuteTradingValueIncrease === null ? "데이터 수집 중" : `${item.trend.fiveMinuteTradingValueIncrease >= 0 ? "+" : ""}${formatKoreanAmount(item.trend.fiveMinuteTradingValueIncrease)}`, inline: true },
-          { name: "1분 변화", value: item.trend.oneMinuteIncrease === null ? "데이터 수집 중" : `${item.trend.oneMinuteIncrease >= 0 ? "+" : ""}${item.trend.oneMinuteIncrease.toFixed(2)}%p`, inline: true },
-          { name: "3분 변화", value: item.trend.threeMinuteIncrease === null ? "데이터 수집 중" : `${item.trend.threeMinuteIncrease >= 0 ? "+" : ""}${item.trend.threeMinuteIncrease.toFixed(2)}%p`, inline: true },
-          { name: "5분 변화", value: item.trend.fiveMinuteIncrease === null ? "데이터 수집 중" : `${item.trend.fiveMinuteIncrease >= 0 ? "+" : ""}${item.trend.fiveMinuteIncrease.toFixed(2)}%p`, inline: true },
-        ] : []),
+        { name: "시가총액", value: formatWholeMan(item.marketCap), inline: true },
+        { name: "당일 거래대금", value: formatWholeMan(item.tradingValue), inline: true },
+        { name: "시가 대비 고점", value: `${item.openToHighRate.toFixed(2)}%`, inline: true },
       ],
       timestamp: new Date().toISOString(),
-      footer: { text: "STOCKMAN AMS Turnover Ratio Automation" },
+      footer: { text: "STOCKMAN US Turnover Ratio Automation" },
     })),
   };
 }

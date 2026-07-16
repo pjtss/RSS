@@ -12,6 +12,7 @@ export type UsTurnoverRatioItem = {
   marketCap: number;
   tradingValue: number;
   turnoverRatio: number;
+  openToHighRate: number;
 };
 
 export type UsTurnoverRatioDebug = {
@@ -24,6 +25,7 @@ export type UsTurnoverRatioDebug = {
     marketCap: number | null;
     tradingValue: number | null;
     turnoverRatio: number | null;
+    openToHighRate: number | null;
     included: boolean;
   }>;
 };
@@ -32,6 +34,12 @@ function numberValue(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   const parsed = Number(String(value ?? "").replace(/,/g, "").replace(/%/g, "").trim());
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+function finiteNumberValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const parsed = Number(String(value ?? "").replace(/,/g, "").replace(/%/g, "").trim());
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function signedNumber(value: unknown): number | null {
@@ -81,17 +89,25 @@ async function enrichWithPriceDetails(output: unknown[], market: string) {
       const outputDetail = getKisUsPriceDetailOutput(detail?.parsed);
       const detailMarketCap = firstNumber(outputDetail, ["tomv", "mcap"]);
       const detailTradingValue = firstNumber(outputDetail, ["tamt", "tamnt"]);
+      const detailOpen = firstNumber(outputDetail, ["open"]);
+      const detailHigh = firstNumber(outputDetail, ["high"]);
+      const openToHighRate = detailOpen !== null && detailHigh !== null && detailOpen > 0
+        ? ((detailHigh - detailOpen) / detailOpen) * 100
+        : null;
       result[index] = {
         ...item,
         ...outputDetail,
         symb: item.symb ?? code,
         __priceDetailMarketCap: detailMarketCap,
         __priceDetailTradingValue: detailTradingValue,
+        __priceDetailOpen: detailOpen,
+        __priceDetailHigh: detailHigh,
+        __openToHighRate: openToHighRate,
       };
       const marketCap = detailMarketCap;
       const tradingValue = detailTradingValue;
       const turnoverRatio = marketCap !== null && tradingValue !== null ? (tradingValue / marketCap) * 100 : null;
-      debug.details[index] = { code, marketCap, tradingValue, turnoverRatio, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 10 };
+      debug.details[index] = { code, marketCap, tradingValue, turnoverRatio, openToHighRate, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 10 && openToHighRate !== null && openToHighRate < 30 };
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, output.length) }, () => worker()));
@@ -112,7 +128,9 @@ export function filterUsTurnoverRatioItems(parsed: unknown, limit = 100): UsTurn
     if (changeRate === null || changeRate < 0) return [];
     const marketCap = numberValue(item.__priceDetailMarketCap);
     const tradingValue = numberValue(item.__priceDetailTradingValue);
+    const openToHighRate = finiteNumberValue(item.__openToHighRate);
     if (marketCap === null || tradingValue === null) return [];
+    if (openToHighRate === null || openToHighRate >= 30) return [];
     if (marketCap < 1_000_000 || marketCap > 100_000_000) return [];
 
     const turnoverRatio = (tradingValue / marketCap) * 100;
@@ -128,6 +146,7 @@ export function filterUsTurnoverRatioItems(parsed: unknown, limit = 100): UsTurn
       marketCap,
       tradingValue,
       turnoverRatio,
+      openToHighRate,
     }];
   }).slice(0, limit);
 }
@@ -171,7 +190,7 @@ export async function fetchUsTurnoverRatioScanner(request: KisUsTopRisingApiRequ
     priceDetailAttemptCount: acc.priceDetailAttemptCount + value.enriched.debug.priceDetailAttemptCount,
     priceDetailSuccessCount: acc.priceDetailSuccessCount + value.enriched.debug.priceDetailSuccessCount,
     details: [...acc.details, ...value.enriched.debug.details],
-  }), { sourceCount: 0, preDetailFilteredOutCount: 0, priceDetailAttemptCount: 0, priceDetailSuccessCount: 0, details: [] as Array<{ code: string; marketCap: number | null; tradingValue: number | null; turnoverRatio: number | null; included: boolean }> });
+  }), { sourceCount: 0, preDetailFilteredOutCount: 0, priceDetailAttemptCount: 0, priceDetailSuccessCount: 0, details: [] as Array<{ code: string; marketCap: number | null; tradingValue: number | null; turnoverRatio: number | null; openToHighRate: number | null; included: boolean }> });
   return {
     ...first,
     filtered: filterUsTurnoverRatioItems({ output: filteredOutput }, 100),
