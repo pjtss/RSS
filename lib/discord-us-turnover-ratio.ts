@@ -19,6 +19,7 @@ export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioI
     username: "STOCKMAN US TURNOVER",
     allowed_mentions: { parse: [] as string[] },
     embeds: items.slice(0, 10).map((item) => ({
+      title: `${item.code} | ${item.name || item.code}`,
       color: 0x00ffa3,
       fields: [
         { name: "등락률", value: item.changeRate || "-", inline: true },

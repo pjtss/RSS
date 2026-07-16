@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { alertEvents } from "@/lib/schema";
 import { loadAdminFeatureFlags } from "@/lib/admin-flags";
@@ -32,19 +32,31 @@ export async function runUsTurnoverRatioAutomation() {
   if (!db) throw new Error("Database connection is not available.");
   const trendedItems = await saveAndCalculateUsTurnoverRatioTrends(result.filtered);
   const date = seoulDate();
+  const minute = seoulMinute();
   const pending: UsTurnoverRatioItemWithTrend[] = [];
+  const seenCodes = new Set<string>();
+  const claimedIds: number[] = [];
   for (const item of trendedItems) {
     if (!(item.trend.oneMinuteTradingValueIncrease !== null && item.trend.oneMinuteTradingValueIncrease > 0)) continue;
-    const externalId = `us-turnover-ratio:${date}:${item.code}:1m-increase:${seoulMinute()}`;
-    const existing = await db.select({ id: alertEvents.id }).from(alertEvents).where(and(eq(alertEvents.source, "US_TURNOVER_RATIO"), eq(alertEvents.externalId, externalId))).limit(1);
-    if (existing.length === 0) pending.push(item);
+    const code = item.code.toUpperCase();
+    if (seenCodes.has(code)) continue;
+    seenCodes.add(code);
+    const externalId = `us-turnover-ratio:${date}:${code}:1m-increase:${minute}`;
+    const claimed = await db.insert(alertEvents)
+      .values({ source: "US_TURNOVER_RATIO", externalId })
+      .onConflictDoNothing()
+      .returning({ id: alertEvents.id });
+    if (claimed.length > 0) {
+      claimedIds.push(claimed[0].id);
+      pending.push(item);
+    }
   }
 
   if (pending.length === 0) return { skipped: false, sent: 0, matched: trendedItems.length };
   const discord = await sendUsTurnoverRatioToDiscord(pending);
-  if (!discord.ok) throw new Error(`US turnover ratio Discord failed with HTTP ${discord.status}`);
-  for (const item of pending) {
-    await db.insert(alertEvents).values({ source: "US_TURNOVER_RATIO", externalId: `us-turnover-ratio:${date}:${item.code}:1m-increase:${seoulMinute()}` }).onConflictDoNothing();
+  if (!discord.ok) {
+    await db.delete(alertEvents).where(inArray(alertEvents.id, claimedIds));
+    throw new Error(`US turnover ratio Discord failed with HTTP ${discord.status}`);
   }
   return { skipped: false, sent: pending.length, matched: result.filtered.length };
 }
