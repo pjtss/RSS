@@ -1,152 +1,20 @@
-export interface StockIntensity {
-  rank: number;
-  company: string;
-  code: string;
-  intensity: number;
-  price: string;
-  change: string;
-  changeRate: string;
-  volume?: string;
-  tradingValue?: string;
-}
-
-export interface VolumeSpikeItem {
-  rank: number;
-  company: string;
-  code: string;
-  volumeRatio: string; // 전일 대비 거래량 비율
-  tradingValue: string; // 거래대금
-  price: string;
-  changeRate: string;
-}
-
-export interface NetBuyingItem {
-  rank: number;
-  company: string;
-  code: string;
-  foreignNetBuy: string; // 외국인 순매수
-  instNetBuy: string; // 기관 순매수
-  price: string;
-  changeRate: string;
-}
-
-export interface ProgramTradingItem {
-  rank: number;
-  company: string;
-  code: string;
-  programNetBuy: string; // 프로그램 순매수
-  price: string;
-  changeRate: string;
-}
-
-export interface NewHighItem {
-  rank: number;
-  company: string;
-  code: string;
-  highType: string; // 신고가 유형 (예: 52주 신고가)
-  price: string;
-  changeRate: string;
-}
-
-export interface BidAskRatioItem {
-  rank: number;
-  company: string;
-  code: string;
-  bidAskRatio: number; // 체결/호가 잔량 매수 비율 (VR)
-  price: string;
-  changeRate: string;
-}
+export type { BidAskRatioItem, NetBuyingItem, NewHighItem, ProgramTradingItem, StockIntensity, TopRisingStockItem, VolumeSpikeItem } from "./kis-types";
+import type { StockIntensity, VolumeSpikeItem, NetBuyingItem, ProgramTradingItem, NewHighItem, BidAskRatioItem, TopRisingStockItem } from "./kis-types";
+import { KIS_APPKEY, KIS_APPSECRET, getDynamicOffset } from "./kis-runtime";
 
 import { getDb } from "./db";
-import { kisCache, topRisingStocks, topIntensityStocks } from "./schema";
+import { topRisingStocks, topIntensityStocks } from "./schema";
 import { eq, inArray } from "drizzle-orm";
-import { buildKisAuthorization } from "./kis-authorization";
 import { getAccessToken } from "./kis-token";
+import { readKisCache, writeKisCache } from "./kis-cache";
+import { fetchDomesticFluctuation, fetchDomesticVolumePower } from "./kis-domestic-api";
 
 export { clearTokenCache, getAccessToken, refreshAccessToken } from "./kis-token";
 
-const KIS_APPKEY = process.env.KIS_APPKEY;
-const KIS_APPSECRET = process.env.KIS_APPSECRET;
+export { getKisMode } from "./kis-runtime";
 
-export function getKisMode(): "real" | "mock" {
-  if (process.env.NODE_ENV === "test") return "mock"; // 유닛 테스트용 격리만 허용
-  return "real"; // 실전투자 100% 무조건 고정!
-}
-
-// 실시간처럼 변화를 주어 극도의 하이엔드 퀀트 대시보드를 체감할 수 있게 해주는 노이즈 함수
-function getDynamicOffset(seed: number): number {
-  if (process.env.NODE_ENV === 'test') return 0;
-  const seconds = new Date().getSeconds();
-  return Math.sin(seconds + seed) * 1.5;
-}
-
-interface KisOutput {
-  // Legacy shape used by other scanners (volume-rank).
-  hts_kor_shr_nlen?: string; // 종목명
-  mksc_shrn_iscd?: string; // 종목코드
-
-  // Shape for 체결강도 상위(volume-power).
-  hts_kor_isnm?: string; // 종목명
-  stck_shrn_iscd?: string; // 종목코드
-  stck_prpr: string; // 현재가
-  prdy_vrss: string; // 전일대비
-  prdy_ctrt: string; // 전일대비율
-  acml_vol: string; // 누적거래량
-  acml_tr_pbmn: string; // 누적거래대금
-  tday_rltv?: string; // 체결강도(당일 체결강도)
-}
-
-// 한국투자증권 실시간 거래량/거래대금 순위 OpenAPI 직접 조회 헬퍼
-async function fetchRealVolumePower(token: string): Promise<KisOutput[]> {
-  const params = new URLSearchParams({
-    FID_COND_MRKT_DIV_CODE: "J",
-    // 국내주식 체결강도 상위[v1_국내주식-101]
-    FID_COND_SCR_DIV_CODE: "20168",
-    FID_INPUT_ISCD: "0000",
-    FID_DIV_CLS_CODE: "0",
-    FID_BLNG_CLS_CODE: "0",
-    FID_TRGT_CLS_CODE: "111111111",
-    FID_TRGT_EXLS_CLS_CODE: "000000000",
-    FID_INPUT_PRICE_1: "0",
-    FID_INPUT_PRICE_2: "0",
-    FID_VOL_CNT: "0",
-    FID_INPUT_CNT_1: "0",
-    FID_INPUT_CNT_2: "0",
-    FID_STOC_PRE_KYWD_CLS_CODE: "00",
-    FID_SUB_AND_DO_CLS_CODE: "N",
-  });
-
-  const baseUrl = "https://openapi.koreainvestment.com:9443";
-  const trId = "FHPST01680000";
-
-  const url = `${baseUrl}/uapi/domestic-stock/v1/ranking/volume-power?${params.toString()}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "content-type": "application/json",
-      Authorization: buildKisAuthorization(token),
-      appkey: KIS_APPKEY || "",
-      appsecret: KIS_APPSECRET || "",
-      tr_id: trId,
-    },
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`[KIS-DEBUG] fetchRealVolumePower HTTP error: status ${response.status}, body: ${errText}`);
-    throw new Error(`KIS API returned HTTP ${response.status}`);
-  }
-
-  const resData = await response.json();
-  console.info(`[KIS-DEBUG] fetchRealVolumePower raw response:`, JSON.stringify(resData, null, 2));
-
-  if (resData.rt_cd !== "0") {
-    console.error(`[KIS-DEBUG] fetchRealVolumePower business error: rt_cd ${resData.rt_cd}, msg: ${resData.msg1}`);
-    throw new Error(`KIS API Error [${resData.rt_cd}]: ${resData.msg1}`);
-  }
-
-  return resData.output || [];
-}
+// 국내주식 API 호출은 kis-domestic-api 모듈이 담당한다.
+const fetchRealVolumePower = fetchDomesticVolumePower;
 
 // Backward compat: other scanners still call the older helper name.
 const fetchRealVolumeRank = fetchRealVolumePower;
@@ -180,15 +48,11 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
   // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "trading_intensity")).limit(1);
-        if (cacheRecord.length > 0) {
-          const restored = cacheRecord[0].data as StockIntensity[];
-          (restored as any).isFallback = true;
-          (restored as any).fallbackSource = "db";
-          return withError(restored, "API credentials missing; restored from DB cache.");
-        }
+      const restored = await readKisCache<StockIntensity[]>("trading_intensity");
+      if (restored) {
+        (restored as any).isFallback = true;
+        (restored as any).fallbackSource = "db";
+        return withError(restored, "API credentials missing; restored from DB cache.");
       }
     } catch {}
     return withError([], "API credentials missing; no DB cache available.");
@@ -237,15 +101,7 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
 
         // 데이터베이스 영속 캐시 갱신 (성공한 마지막 실제 데이터를 백그라운드 공유 저장)
         try {
-          const db = getDb();
-          if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: top10, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: top10, updatedAt: new Date() }
-              });
-          }
+          await writeKisCache(cacheKey, top10);
         } catch (dbWriteErr) {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
         }
@@ -260,23 +116,13 @@ export async function fetchTradingIntensity(): Promise<StockIntensity[]> {
 
   // D. 장애/장외 시간 -> 절대 Mock Data를 쓰지 않고 DB 캐시에서 마지막 실거래 기록 복원
   try {
-    const db = getDb();
-    if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        const restored = cacheRecord[0].data as StockIntensity[];
-        (restored as any).isFallback = true;
-        (restored as any).fallbackSource = "db";
-        const lastErr = (globalThis as any).__lastKisTradingIntensityError;
-        const msg = lastErr ? `KIS live fetch failed: ${lastErr}. Restored from DB cache.` : "Restored from DB cache.";
-        return withError(restored, msg);
-      }
+    const restored = await readKisCache<StockIntensity[]>(cacheKey);
+    if (restored) {
+      (restored as any).isFallback = true;
+      (restored as any).fallbackSource = "db";
+      const lastErr = (globalThis as any).__lastKisTradingIntensityError;
+      const msg = lastErr ? `KIS live fetch failed: ${lastErr}. Restored from DB cache.` : "Restored from DB cache.";
+      return withError(restored, msg);
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
@@ -307,11 +153,8 @@ export async function fetchVolumeSpike(): Promise<VolumeSpikeItem[]> {
   // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "volume_spike")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as VolumeSpikeItem[];
-      }
+      const cached = await readKisCache<VolumeSpikeItem[]>("volume_spike");
+      if (cached) return cached;
     } catch {}
     return [];
   }
@@ -344,15 +187,7 @@ export async function fetchVolumeSpike(): Promise<VolumeSpikeItem[]> {
 
         // 캐시 업데이트
         try {
-          const db = getDb();
-          if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: mappedData, updatedAt: new Date() }
-              });
-          }
+          await writeKisCache(cacheKey, mappedData);
         } catch (dbWriteErr) {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
         }
@@ -368,16 +203,8 @@ export async function fetchVolumeSpike(): Promise<VolumeSpikeItem[]> {
   try {
     const db = getDb();
     if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as VolumeSpikeItem[];
-      }
+        const cached = await readKisCache<VolumeSpikeItem[]>(cacheKey);
+        if (cached) return cached;
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
@@ -406,11 +233,8 @@ export async function fetchNetBuying(): Promise<NetBuyingItem[]> {
   // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "net_buying")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as NetBuyingItem[];
-      }
+      const cached = await readKisCache<NetBuyingItem[]>("net_buying");
+      if (cached) return cached;
     } catch {}
     return [];
   }
@@ -443,12 +267,7 @@ export async function fetchNetBuying(): Promise<NetBuyingItem[]> {
         try {
           const db = getDb();
           if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: mappedData, updatedAt: new Date() }
-              });
+            await writeKisCache(cacheKey, mappedData);
           }
         } catch (dbWriteErr) {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
@@ -465,16 +284,8 @@ export async function fetchNetBuying(): Promise<NetBuyingItem[]> {
   try {
     const db = getDb();
     if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as NetBuyingItem[];
-      }
+      const cached = await readKisCache<NetBuyingItem[]>(cacheKey);
+      if (cached) return cached;
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
@@ -502,11 +313,8 @@ export async function fetchProgramTrading(): Promise<ProgramTradingItem[]> {
   // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "program_trading")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as ProgramTradingItem[];
-      }
+      const cached = await readKisCache<ProgramTradingItem[]>("program_trading");
+      if (cached) return cached;
     } catch {}
     return [];
   }
@@ -538,12 +346,7 @@ export async function fetchProgramTrading(): Promise<ProgramTradingItem[]> {
         try {
           const db = getDb();
           if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: mappedData, updatedAt: new Date() }
-              });
+            await writeKisCache(cacheKey, mappedData);
           }
         } catch (dbWriteErr) {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
@@ -560,16 +363,8 @@ export async function fetchProgramTrading(): Promise<ProgramTradingItem[]> {
   try {
     const db = getDb();
     if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as ProgramTradingItem[];
-      }
+      const cached = await readKisCache<ProgramTradingItem[]>(cacheKey);
+      if (cached) return cached;
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
@@ -597,11 +392,8 @@ export async function fetchNewHigh(): Promise<NewHighItem[]> {
   // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "new_high")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as NewHighItem[];
-      }
+      const cached = await readKisCache<NewHighItem[]>("new_high");
+      if (cached) return cached;
     } catch {}
     return [];
   }
@@ -633,12 +425,7 @@ export async function fetchNewHigh(): Promise<NewHighItem[]> {
         try {
           const db = getDb();
           if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: mappedData, updatedAt: new Date() }
-              });
+            await writeKisCache(cacheKey, mappedData);
           }
         } catch (dbWriteErr) {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
@@ -655,16 +442,8 @@ export async function fetchNewHigh(): Promise<NewHighItem[]> {
   try {
     const db = getDb();
     if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as NewHighItem[];
-      }
+      const cached = await readKisCache<NewHighItem[]>(cacheKey);
+      if (cached) return cached;
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
@@ -692,11 +471,8 @@ export async function fetchBidAskRatio(): Promise<BidAskRatioItem[]> {
   // B. 실 운영 환경에서 API 키 누락 시 -> 절대 Mock을 반환하지 않고 DB 캐시 복원 시도 (없을 시 빈 배열)
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "bid_ask_ratio")).limit(1);
-        if (cacheRecord.length > 0) return cacheRecord[0].data as BidAskRatioItem[];
-      }
+      const cached = await readKisCache<BidAskRatioItem[]>("bid_ask_ratio");
+      if (cached) return cached;
     } catch {}
     return [];
   }
@@ -728,12 +504,7 @@ export async function fetchBidAskRatio(): Promise<BidAskRatioItem[]> {
         try {
           const db = getDb();
           if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: mappedData, updatedAt: new Date() }
-              });
+            await writeKisCache(cacheKey, mappedData);
           }
         } catch (dbWriteErr) {
           console.error(`[KIS] Failed to write ${cacheKey} to DB Cache:`, dbWriteErr);
@@ -750,16 +521,8 @@ export async function fetchBidAskRatio(): Promise<BidAskRatioItem[]> {
   try {
     const db = getDb();
     if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        return cacheRecord[0].data as BidAskRatioItem[];
-      }
+      const cached = await readKisCache<BidAskRatioItem[]>(cacheKey);
+      if (cached) return cached;
     }
   } catch (dbReadErr) {
     console.error(`[KIS] Failed to read ${cacheKey} from DB cache:`, dbReadErr);
@@ -768,58 +531,7 @@ export async function fetchBidAskRatio(): Promise<BidAskRatioItem[]> {
   return [];
 }
 
-export interface TopRisingStockItem {
-  rank: number;
-  company: string;
-  code: string;
-  price: string;
-  changeRate: string;
-}
-
-// 한국투자증권 실시간 등락률 순위 OpenAPI 직접 조회 헬퍼
-async function fetchRealFluctuationRank(token: string): Promise<KisOutput[]> {
-  const params = new URLSearchParams({
-    FID_COND_MRKT_DIV_CODE: "J",
-    FID_COND_SCR_DIV_CODE: "20170",
-    FID_INPUT_ISCD: "0000",
-    FID_DIV_CLS_CODE: "0",
-    FID_RANK_SORT_CLS_CODE: "0", // 상승률 순
-    FID_PRC_CLS_CODE: "0",
-    FID_TRGT_CLS_CODE: "000000000", // KIS Developers 공식 규격 9자리 준수
-    FID_TRGT_EXLS_CLS_CODE: "000000000", // KIS Developers 공식 규격 9자리 준수
-  });
-
-  const baseUrl = "https://openapi.koreainvestment.com:9443";
-  const trId = "FHPST01700000";
-
-  const url = `${baseUrl}/uapi/domestic-stock/v1/ranking/fluctuation?${params.toString()}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "content-type": "application/json",
-      Authorization: buildKisAuthorization(token),
-      appkey: KIS_APPKEY || "",
-      appsecret: KIS_APPSECRET || "",
-      tr_id: trId,
-    },
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    console.error(`[KIS-DEBUG] fetchRealFluctuationRank HTTP error: status ${response.status}, body: ${errText}`);
-    throw new Error(`KIS API returned HTTP ${response.status}`);
-  }
-
-  const resData = await response.json();
-  console.info(`[KIS-DEBUG] fetchRealFluctuationRank raw response:`, JSON.stringify(resData, null, 2));
-
-  if (resData.rt_cd !== "0") {
-    console.error(`[KIS-DEBUG] fetchRealFluctuationRank business error: rt_cd ${resData.rt_cd}, msg: ${resData.msg1}`);
-    throw new Error(`KIS API Error [${resData.rt_cd}]: ${resData.msg1}`);
-  }
-
-  return resData.output || [];
-}
+const fetchRealFluctuationRank = fetchDomesticFluctuation;
 
 // Mock 데이터 유출 방지 헬퍼 함수
 function filterMockRisingStocks(items: TopRisingStockItem[]): TopRisingStockItem[] {
@@ -862,18 +574,13 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
   if (!KIS_APPKEY || !KIS_APPSECRET) {
     console.warn(`[KIS-DEBUG] fetchTopRisingStocks: KIS API credentials missing (KIS_APPKEY: ${!!KIS_APPKEY}, KIS_APPSECRET: ${!!KIS_APPSECRET}). Attempting DB Cache restore.`);
     try {
-      const db = getDb();
-      if (db) {
-        const cacheRecord = await db.select({ data: kisCache.data }).from(kisCache).where(eq(kisCache.key, "top_rising_stocks")).limit(1);
-        if (cacheRecord.length > 0) {
-          const filtered = filterMockRisingStocks(cacheRecord[0].data as TopRisingStockItem[]);
-          console.info(`[KIS-DEBUG] fetchTopRisingStocks: Successfully restored ${filtered.length} items from DB cache.`);
-          return filtered;
-        }
-        console.warn("[KIS-DEBUG] fetchTopRisingStocks empty return: API credentials missing and 'top_rising_stocks' DB cache is empty.");
-      } else {
-        console.warn("[KIS-DEBUG] fetchTopRisingStocks empty return: API credentials missing and DB connection not available.");
+      const cached = await readKisCache<TopRisingStockItem[]>("top_rising_stocks");
+      if (cached) {
+        const filtered = filterMockRisingStocks(cached);
+        console.info(`[KIS-DEBUG] fetchTopRisingStocks: Successfully restored ${filtered.length} items from DB cache.`);
+        return filtered;
       }
+      console.warn("[KIS-DEBUG] fetchTopRisingStocks empty return: API credentials missing and 'top_rising_stocks' DB cache is empty.");
     } catch (dbErr: any) {
       console.error("[KIS-DEBUG] fetchTopRisingStocks empty return: API credentials missing and DB cache read crashed:", dbErr.message);
     }
@@ -906,12 +613,7 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
         try {
           const db = getDb();
           if (db) {
-            await db.insert(kisCache)
-              .values({ key: cacheKey, data: mappedData, updatedAt: new Date() })
-              .onConflictDoUpdate({
-                target: kisCache.key,
-                set: { data: mappedData, updatedAt: new Date() }
-              });
+            await writeKisCache(cacheKey, mappedData);
           }
         } catch (dbWriteErr: any) {
           console.error(`[KIS-DEBUG] fetchTopRisingStocks: Failed to write ${cacheKey} to DB Cache:`, dbWriteErr.message);
@@ -932,24 +634,13 @@ export async function fetchTopRisingStocks(): Promise<TopRisingStockItem[]> {
 
   // D. 장애/장외 시간 -> DB 캐시에서 마지막 실거래 기록 복원
   try {
-    const db = getDb();
-    if (db) {
-      const cacheRecord = await db.select({
-        data: kisCache.data
-      })
-      .from(kisCache)
-      .where(eq(kisCache.key, cacheKey))
-      .limit(1);
-
-      if (cacheRecord.length > 0) {
-        const restored = filterMockRisingStocks(cacheRecord[0].data as TopRisingStockItem[]);
-        console.info(`[KIS-DEBUG] fetchTopRisingStocks: Successfully restored ${restored.length} items from fallback DB cache.`);
-        return restored;
-      }
-      console.warn(`[KIS-DEBUG] fetchTopRisingStocks empty return: DB cache key '${cacheKey}' is empty or does not exist.`);
-    } else {
-      console.warn("[KIS-DEBUG] fetchTopRisingStocks empty return: DB connection not available for cache fallback.");
+    const cached = await readKisCache<TopRisingStockItem[]>(cacheKey);
+    if (cached) {
+      const restored = filterMockRisingStocks(cached);
+      console.info(`[KIS-DEBUG] fetchTopRisingStocks: Successfully restored ${restored.length} items from fallback DB cache.`);
+      return restored;
     }
+    console.warn(`[KIS-DEBUG] fetchTopRisingStocks empty return: DB cache key '${cacheKey}' is empty or does not exist.`);
   } catch (dbReadErr: any) {
     console.error(`[KIS-DEBUG] fetchTopRisingStocks empty return: Failed to read DB cache:`, dbReadErr.message);
   }

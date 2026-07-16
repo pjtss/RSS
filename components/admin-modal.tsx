@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
-import styles from "@/app/admin/page.module.css";
+import styles from "./admin-shell.module.css";
 
 type AdminModalProps = {
   title: string;

@@ -15,7 +15,7 @@ import {
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { ADMIN_NAV_ITEMS, type AdminNavId } from "@/lib/admin-navigation";
-import styles from "@/app/admin/page.module.css";
+import styles from "./admin-shell.module.css";
 
 const NAV_ICONS = {
   dashboard: LayoutDashboard,

@@ -1,28 +1,28 @@
 /* ========== DARK THEME (default) ========== */
 :root,
 [data-theme="dark"] {
-  --background: #020617;
-  --foreground: #f8fafc;
-  --card: rgba(30, 41, 59, 0.5);
+  --background: #050b12;
+  --foreground: #e8eef5;
+  --card: rgba(7, 12, 20, 0.94);
   --card-foreground: #f8fafc;
   --popover: #020617;
   --popover-foreground: #f8fafc;
   --primary: #00ffa3;
   --primary-foreground: #020617;
-  --secondary: #1e293b;
+  --secondary: #0d1520;
   --secondary-foreground: #f8fafc;
-  --muted: #64748b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
+  --muted: #6f849a;
+  --muted-foreground: #91a3b7;
+  --accent: #0d1520;
   --accent-foreground: #f8fafc;
   --destructive: #ef4444;
   --destructive-foreground: #f8fafc;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: #1e293b;
-  --ring: #00ffa3;
-  --radius: 1rem;
+  --border: rgba(130, 150, 175, 0.2);
+  --input: #09111b;
+  --ring: #00e79b;
+  --radius: 8px;
 
-  --neon-green: #00ffa3;
+  --neon-green: #00e79b;
   --neon-red: #ff4b2b;
   --neon-blue: #29a3ff;
 
@@ -30,11 +30,11 @@
   --glass-border: rgba(255, 255, 255, 0.08);
 
   /* Navigation */
-  --nav-bg: rgba(30, 41, 59, 0.4);
-  --nav-border: rgba(255, 255, 255, 0.05);
-  --nav-link: #94a3b8;
-  --nav-link-hover: #ffffff;
-  --nav-link-hover-bg: rgba(255, 255, 255, 0.03);
+  --nav-bg: rgba(11, 18, 28, 0.92);
+  --nav-border: rgba(130, 150, 175, 0.14);
+  --nav-link: #8fa1b5;
+  --nav-link-hover: #dce6ef;
+  --nav-link-hover-bg: rgba(255, 255, 255, 0.04);
 
   /* Text */
   --text-hero: #ffffff;
@@ -46,8 +46,8 @@
   --table-border: rgba(255, 255, 255, 0.05);
 
   /* Body gradient */
-  --body-gradient-1: rgba(0, 255, 163, 0.05);
-  --body-gradient-2: rgba(41, 163, 255, 0.05);
+  --body-gradient-1: rgba(0, 231, 155, 0.025);
+  --body-gradient-2: rgba(41, 130, 246, 0.02);
 
   /* Scrollbar */
   --scrollbar-thumb: #1e293b;
@@ -125,11 +125,7 @@ html, body {
 }
 
 body {
-  background:
-    radial-gradient(circle at 0% 0%, var(--body-gradient-1) 0%, transparent 50%),
-    radial-gradient(circle at 100% 0%, var(--body-gradient-2) 0%, transparent 50%),
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0%, var(--background) 100%),
-    var(--background);
+  background: var(--background);
   background-attachment: fixed;
 }
 

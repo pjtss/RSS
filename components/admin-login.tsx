@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { LockKeyhole, LogIn } from "lucide-react";
-import styles from "@/app/admin/page.module.css";
+import styles from "./admin-shell.module.css";
 
 export function AdminLogin() {
   const [password, setPassword] = useState("");

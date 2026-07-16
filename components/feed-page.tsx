@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { GLOBAL_POLLING_INTERVAL, PAGE_SIZE } from "@/lib/constants";
 import { formatTime, getJudgmentStatus, paginateItems, sortByPublishedAtDesc } from "@/lib/utils";
-import type { DartItem, DartJudgment, FeedPayload, SecItem, SecSentiment } from "@/lib/types";
+import type { DartItem, DartJudgment, SecItem, SecSentiment } from "@/lib/types";
 import { calculateMarketSentiment } from "@/lib/scoring";
 import { PageNavigation } from "./page-navigation";
 import { getWatchlist, toggleWatchlist } from "@/lib/watchlist";
@@ -12,6 +12,7 @@ import { SectorMap } from "./sector-map";
 import { CompanyTimeline } from "./company-timeline";
 import { ContractBadge } from "./contract-badge";
 import styles from "./feed-page.module.css";
+import { useFeedData } from "./use-feed-data";
 
 type ViewMode = "latest" | "grouped";
 
@@ -203,15 +204,11 @@ function SecTable({ items, watchlist, onToggleWatchlist, onShowTimeline }: { ite
 }
 
 export function FeedPage(props: FeedPageProps) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dartData, setDartData] = useState<FeedPayload<DartItem> | null>(null);
-  const [secData, setSecData] = useState<FeedPayload<SecItem> | null>(null);
+  const { loading, error, dartData, secData } = useFeedData(props.type);
   const [viewMode, setViewMode] = useState<ViewMode>("latest");
   const [page, setPage] = useState(1);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
-  const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     setWatchlist(getWatchlist());
@@ -220,80 +217,6 @@ export function FeedPage(props: FeedPageProps) {
   const handleToggleWatchlist = (company: string) => {
     setWatchlist(toggleWatchlist(company));
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadFeed() {
-      try {
-        const response = await fetch(props.type === "dart" ? "/api/dart" : "/api/sec", {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error("RSS 응답을 가져오는 데 실패했습니다.");
-        }
-
-        if (props.type === "dart") {
-          const data = (await response.json()) as FeedPayload<DartItem>;
-          if (!cancelled) {
-            setDartData(data);
-          }
-        } else {
-          const data = (await response.json()) as FeedPayload<SecItem>;
-          if (!cancelled) {
-            setSecData(data);
-          }
-        }
-
-        if (!cancelled) {
-          setLoading(false);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setLoading(false);
-          setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
-        }
-      }
-    }
-
-    function stopPolling() {
-      if (intervalRef.current !== null) {
-        window.clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    function startPolling() {
-      stopPolling();
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-
-      intervalRef.current = window.setInterval(() => {
-        void loadFeed();
-      }, GLOBAL_POLLING_INTERVAL);
-    }
-
-    function handleVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        void loadFeed();
-        startPolling();
-      } else {
-        stopPolling();
-      }
-    }
-
-    void loadFeed();
-    startPolling();
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      cancelled = true;
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      stopPolling();
-    };
-  }, [props.type]);
 
   useEffect(() => {
     setPage(1);
