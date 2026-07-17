@@ -4,6 +4,7 @@ import { usTurnoverRatioSnapshots } from "@/lib/schema";
 import type { UsTurnoverRatioItem } from "@/lib/us-turnover-ratio";
 
 export type UsTurnoverRatioTrend = {
+  isNew: boolean;
   oneMinuteTradingValueIncrease: number | null;
   threeMinuteTradingValueIncrease: number | null;
   fiveMinuteTradingValueIncrease: number | null;
@@ -55,6 +56,7 @@ export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRat
     const increases = previous.map((row) => row ? item.turnoverRatio - row.turnoverRatio : null);
     const tradingValueIncreases = previous.map((row) => row ? item.tradingValue - row.tradingValue : null);
     const trend: UsTurnoverRatioTrend = {
+      isNew: previous[0] === null,
       oneMinuteTradingValueIncrease: tradingValueIncreases[0],
       threeMinuteTradingValueIncrease: tradingValueIncreases[1],
       fiveMinuteTradingValueIncrease: tradingValueIncreases[2],

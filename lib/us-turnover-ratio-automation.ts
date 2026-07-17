@@ -37,11 +37,13 @@ export async function runUsTurnoverRatioAutomation() {
   const seenCodes = new Set<string>();
   const claimedIds: number[] = [];
   for (const item of trendedItems) {
-    if (!(item.trend.oneMinuteTradingValueIncrease !== null && item.trend.oneMinuteTradingValueIncrease > 0)) continue;
+    const shouldAlert = item.trend.isNew || (item.trend.oneMinuteTradingValueIncrease !== null && item.trend.oneMinuteTradingValueIncrease > 0);
+    if (!shouldAlert) continue;
     const code = item.code.toUpperCase();
     if (seenCodes.has(code)) continue;
     seenCodes.add(code);
-    const externalId = `us-turnover-ratio:${date}:${code}:1m-increase:${minute}`;
+    const alertType = item.trend.isNew ? "new" : "1m-increase";
+    const externalId = `us-turnover-ratio:${date}:${code}:${alertType}:${minute}`;
     const claimed = await db.insert(alertEvents)
       .values({ source: "US_TURNOVER_RATIO", externalId })
       .onConflictDoNothing()
