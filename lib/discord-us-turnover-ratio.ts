@@ -13,9 +13,7 @@ export function isUsTurnoverRatioDiscordConfigured() {
 }
 
 export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioItem | UsTurnoverRatioItemWithTrend>) {
-  const firstTicker = items[0]?.code || "미국 종목";
   return {
-    content: `${firstTicker}\n미국 거래대금 조건 충족 ${items.length}건`,
     username: "STOCKMAN US TURNOVER",
     allowed_mentions: { parse: [] as string[] },
     embeds: items.slice(0, 10).map((item) => ({
