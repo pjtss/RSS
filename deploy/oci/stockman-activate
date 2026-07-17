@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DEPLOY_PATH="${1:?deployment path is required}"
+RELEASE="${2:?release archive is required}"
+TEMP_PATH="${DEPLOY_PATH}.incoming"
+
+rm -rf "$TEMP_PATH"
+mkdir -p "$TEMP_PATH"
+tar -xzf "$RELEASE" -C "$TEMP_PATH"
+chmod +x "$TEMP_PATH/scripts/oci-cron.sh"
+rm -f "$RELEASE"
+rm -rf "$DEPLOY_PATH.previous"
+if [ -d "$DEPLOY_PATH" ]; then mv "$DEPLOY_PATH" "$DEPLOY_PATH.previous"; fi
+mv "$TEMP_PATH" "$DEPLOY_PATH"
+chown -R stockman:stockman "$DEPLOY_PATH"
+systemctl restart stockman.service
+systemctl restart stockman-cron.timer
+systemctl is-active --quiet stockman.service
+systemctl is-active --quiet stockman-cron.timer

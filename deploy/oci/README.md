@@ -46,9 +46,16 @@ sudo chmod 640 /etc/stockman/stockman.env
 sudo cp deploy/oci/stockman.service /etc/systemd/system/
 sudo cp deploy/oci/stockman-cron.service /etc/systemd/system/
 sudo cp deploy/oci/stockman-cron.timer /etc/systemd/system/
+sudo install -o root -g root -m 755 deploy/oci/stockman-activate /usr/local/sbin/stockman-activate
 sudo systemctl daemon-reload
 sudo systemctl enable --now stockman.service
 sudo systemctl enable --now stockman-cron.timer
+```
+
+GitHub Actions가 배포 교체 작업만 수행할 수 있도록 `sudoers`에 다음을 추가합니다.
+
+```text
+ubuntu ALL=(root) NOPASSWD: /usr/local/sbin/stockman-activate *
 ```
 
 ## 4. Nginx
