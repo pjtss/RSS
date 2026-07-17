@@ -1,0 +1,20 @@
+[Unit]
+Description=Stockman Next.js application
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stockman
+WorkingDirectory=/opt/stockman/current
+EnvironmentFile=/etc/stockman/stockman.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /opt/stockman/current/.next/standalone/server.js
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=15
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target
