@@ -23,6 +23,6 @@ export async function GET(request: Request) {
     volRang: url.searchParams.get("volRang") || undefined,
   }, ["AMS", "NAS"]);
   if (!result) return NextResponse.json({ error: "KIS access token is unavailable" }, { status: 500 });
-  const itemsWithTrend = await saveAndCalculateUsTurnoverRatioTrends(result.filtered);
+  const itemsWithTrend = await saveAndCalculateUsTurnoverRatioTrends(result.filtered, new Date(), false);
   return NextResponse.json(itemsWithTrend, { status: result.ok ? 200 : result.status, headers: { "Cache-Control": "no-store" } });
 }

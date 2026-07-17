@@ -34,7 +34,7 @@ function startOfSeoulDay(value: Date) {
   ) - 9 * 60 * 60 * 1000);
 }
 
-export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRatioItem[], observedAt = new Date()): Promise<UsTurnoverRatioItemWithTrend[]> {
+export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRatioItem[], observedAt = new Date(), persist = true): Promise<UsTurnoverRatioItemWithTrend[]> {
   const db = getDb();
   if (!db) throw new Error("Database connection is not available.");
   const result: UsTurnoverRatioItemWithTrend[] = [];
@@ -44,7 +44,8 @@ export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRat
     const previous = await Promise.all(windows.map(async ({ minutes }) => {
       const cutoff = new Date(observedAt.getTime() - minutes * 60_000);
       const rows = await db.select().from(usTurnoverRatioSnapshots)
-        .where(and(
+          .where(and(
+          eq(usTurnoverRatioSnapshots.market, item.market),
           eq(usTurnoverRatioSnapshots.code, item.code),
           gte(usTurnoverRatioSnapshots.observedAt, dayStart),
           lte(usTurnoverRatioSnapshots.observedAt, cutoff),
@@ -68,14 +69,17 @@ export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRat
       fiveMinuteSignal: increases[2] !== null && increases[2] >= 5,
     };
 
-    await db.insert(usTurnoverRatioSnapshots).values({
-      code: item.code,
-      name: item.name,
-      marketCap: item.marketCap,
-      tradingValue: item.tradingValue,
-      turnoverRatio: item.turnoverRatio,
-      observedAt,
-    }).onConflictDoNothing();
+    if (persist) {
+      await db.insert(usTurnoverRatioSnapshots).values({
+        market: item.market,
+        code: item.code,
+        name: item.name,
+        marketCap: item.marketCap,
+        tradingValue: item.tradingValue,
+        turnoverRatio: item.turnoverRatio,
+        observedAt,
+      }).onConflictDoNothing();
+    }
     result.push({ ...item, trend });
   }
   return result;

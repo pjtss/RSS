@@ -10,7 +10,7 @@ function formatWholeMan(value: number) {
 
 export function isUsTurnoverRatioDiscordConfigured() {
   return Boolean(
-    process.env.US_TURNOVER_RATIO_NEW_DISCORD_WEBHOOK_URL?.trim() &&
+    process.env.US_TURNOVER_RATIO_NEW_DISCORD_WEBHOOK_URL?.trim() ||
     process.env.US_TURNOVER_RATIO_INCREASE_DISCORD_WEBHOOK_URL?.trim(),
   );
 }
@@ -37,7 +37,7 @@ export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioI
 
 export async function sendUsTurnoverRatioToDiscord(items: UsTurnoverRatioItem[], webhookUrl: string) {
   const webhook = webhookUrl.trim();
-  if (!webhook) throw new Error("US_TURNOVER_RATIO_DISCORD_WEBHOOK_URL is not configured");
+  if (!webhook) throw new Error("Turnover ratio Discord webhook is not configured");
   const chunks: UsTurnoverRatioItem[][] = [];
   for (let index = 0; index < items.length; index += 10) {
     chunks.push(items.slice(index, index + 10));

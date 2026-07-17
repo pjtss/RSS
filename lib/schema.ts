@@ -44,6 +44,7 @@ export const usTurnoverRatioSnapshots = pgTable(
   "us_turnover_ratio_snapshots",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
+    market: text("market").notNull().default("AMS"),
     code: text("code").notNull(),
     name: text("name").notNull().default(""),
     marketCap: doublePrecision("market_cap").notNull(),
@@ -51,7 +52,7 @@ export const usTurnoverRatioSnapshots = pgTable(
     turnoverRatio: doublePrecision("turnover_ratio").notNull(),
     observedAt: timestamp("observed_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex("us_turnover_ratio_snapshot_code_time").on(table.code, table.observedAt)]
+  (table) => [uniqueIndex("us_turnover_ratio_snapshot_market_code_time").on(table.market, table.code, table.observedAt)]
 );
 
 export const usTurnoverRatioBlacklist = pgTable("us_turnover_ratio_blacklist", {

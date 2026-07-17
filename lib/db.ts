@@ -89,14 +89,30 @@ export async function ensureSchema() {
     await client.query(`
       CREATE TABLE IF NOT EXISTS us_turnover_ratio_snapshots (
         id BIGSERIAL PRIMARY KEY,
+        market TEXT NOT NULL DEFAULT 'AMS',
         code TEXT NOT NULL,
         name TEXT NOT NULL DEFAULT '',
         market_cap DOUBLE PRECISION NOT NULL,
         trading_value DOUBLE PRECISION NOT NULL,
         turnover_ratio DOUBLE PRECISION NOT NULL,
         observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        UNIQUE (code, observed_at)
+        UNIQUE (market, code, observed_at)
       );
+    `);
+    await client.query(`
+      ALTER TABLE us_turnover_ratio_snapshots
+      ADD COLUMN IF NOT EXISTS market TEXT NOT NULL DEFAULT 'AMS'
+    `);
+    await client.query(`
+      DROP INDEX IF EXISTS us_turnover_ratio_snapshot_code_time
+    `);
+    await client.query(`
+      ALTER TABLE us_turnover_ratio_snapshots
+      DROP CONSTRAINT IF EXISTS us_turnover_ratio_snapshots_code_observed_at_key
+    `);
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS us_turnover_ratio_snapshot_market_code_time
+      ON us_turnover_ratio_snapshots (market, code, observed_at)
     `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS us_turnover_ratio_snapshots_code_observed_idx
