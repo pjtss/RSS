@@ -131,6 +131,14 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS us_turnover_ratio_watches (
+        ticker TEXT PRIMARY KEY,
+        threshold DOUBLE PRECISION NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS sec_automation_events (
         external_id TEXT PRIMARY KEY,
         status TEXT NOT NULL,

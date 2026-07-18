@@ -61,6 +61,12 @@ export const usTurnoverRatioBlacklist = pgTable("us_turnover_ratio_blacklist", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const usTurnoverRatioWatches = pgTable("us_turnover_ratio_watches", {
+  ticker: text("ticker").primaryKey(),
+  threshold: doublePrecision("threshold").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const secAutomationEvents = pgTable("sec_automation_events", {
   externalId: text("external_id").primaryKey(),
   status: text("status").notNull(),

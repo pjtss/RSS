@@ -24,6 +24,7 @@ const NAV_ICONS = {
   "api-config": Settings2,
   "api-tests": FlaskConical,
   blacklist: ListFilter,
+  "turnover-watch": Activity,
   "sec-test": ChartNoAxesCombined,
 } satisfies Record<AdminNavId, typeof LayoutDashboard>;
 
