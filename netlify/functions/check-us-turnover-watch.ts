@@ -1,11 +1,13 @@
 import { schedule } from "@netlify/functions";
-import { ensureSchema } from "../../lib/db";
+import { ensureSchema, withAdvisoryLock } from "../../lib/db";
 import { runUsTurnoverWatchAutomation } from "../../lib/us-turnover-watch";
 
 export const handler = schedule("*/1 * * * *", async () => {
   try {
     await ensureSchema();
-    const data = await runUsTurnoverWatchAutomation();
+    const locked = await withAdvisoryLock("stockman:us-turnover-watch", runUsTurnoverWatchAutomation);
+    if (!locked.locked) return { statusCode: 200, body: JSON.stringify({ ok: true, skipped: "already_running" }) };
+    const data = locked.value;
     console.log("[Cron] US turnover watch completed:", data);
     return { statusCode: 200, body: JSON.stringify({ ok: true, data }) };
   } catch (error) {

@@ -64,6 +64,11 @@ export const usTurnoverRatioBlacklist = pgTable("us_turnover_ratio_blacklist", {
 export const usTurnoverRatioWatches = pgTable("us_turnover_ratio_watches", {
   ticker: text("ticker").primaryKey(),
   threshold: doublePrecision("threshold").notNull(),
+  lastMarket: text("last_market"),
+  lastRatio: doublePrecision("last_ratio"),
+  lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+  lastAlertedAt: timestamp("last_alerted_at", { withTimezone: true }),
+  lastError: text("last_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

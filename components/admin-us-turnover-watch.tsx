@@ -5,7 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { AdminPageShell } from "@/components/admin-page-shell";
 import styles from "@/app/admin/page.module.css";
 
-type Watch = { ticker: string; threshold: number };
+type Watch = { ticker: string; threshold: number; lastMarket?: string | null; lastRatio?: number | null; lastCheckedAt?: string | null; lastAlertedAt?: string | null; lastError?: string | null };
 
 export function AdminUsTurnoverWatch() {
   const [watches, setWatches] = useState<Watch[]>([]);
@@ -52,7 +52,7 @@ export function AdminUsTurnoverWatch() {
       </div>
     </section>
     <section className={styles.statusGrid}>
-      {watches.map((watch) => <article key={watch.ticker} className={styles.card}><div className={styles.cardHeader}><strong className={styles.cardTitle}>{watch.ticker}</strong><span>{Number(watch.threshold).toFixed(2)}%</span><button className={styles.logoutButton} onClick={() => void remove(watch.ticker)} aria-label={`${watch.ticker} 삭제`}><Trash2 size={16} /></button></div></article>)}
+      {watches.map((watch) => <article key={watch.ticker} className={styles.card}><div className={styles.cardHeader}><div><strong className={styles.cardTitle}>{watch.ticker}</strong><p className={styles.cardDesc}>기준 {Number(watch.threshold).toFixed(2)}% · 최근 {watch.lastRatio == null ? "-" : `${Number(watch.lastRatio).toFixed(2)}%`} · {watch.lastMarket || "-"}</p><p className={styles.cardDesc}>{watch.lastError || (watch.lastCheckedAt ? `조회 ${new Date(watch.lastCheckedAt).toLocaleString("ko-KR")}` : "아직 조회되지 않음")}</p></div><button className={styles.logoutButton} onClick={() => void remove(watch.ticker)} aria-label={`${watch.ticker} 삭제`}><Trash2 size={16} /></button></div></article>)}
       {watches.length === 0 && <div className={styles.emptyState}>등록된 감시 종목이 없습니다.</div>}
     </section>
   </AdminPageShell>;

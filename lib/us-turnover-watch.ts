@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { alertEvents } from "@/lib/schema";
 import { fetchKisUsPriceDetail, getKisUsPriceDetailOutput } from "@/lib/kis-us-price-detail";
 import { calculateKisUsMarketCap } from "@/lib/kis-us-market-cap";
-import { listUsTurnoverWatches } from "@/lib/us-turnover-watch-repository";
+import { listUsTurnoverWatches, recordUsTurnoverWatchObservation } from "@/lib/us-turnover-watch-repository";
 import { sendUsTurnoverWatchToDiscord } from "@/lib/discord-us-turnover-watch";
 import { loadAdminFeatureFlags } from "@/lib/admin-flags";
 import { isUsTurnoverWatchOpen } from "@/lib/scanner-hours";
@@ -28,6 +28,7 @@ export async function runUsTurnoverWatchAutomation() {
   const db = getDb();
   const date = seoulDate();
   const sent: Array<Record<string, unknown>> = [];
+  const claimedIds: number[] = [];
 
   for (const watch of watches) {
     for (const market of MARKETS) {
@@ -35,8 +36,13 @@ export async function runUsTurnoverWatchAutomation() {
       const output = getKisUsPriceDetailOutput(detail?.parsed);
       const marketCap = calculateKisUsMarketCap(output);
       const tradingValue = positiveNumber(output.tamt ?? output.tamnt);
-      if (!detail?.ok || marketCap === null || tradingValue === null) continue;
+      const checkedAt = new Date();
+      if (!detail?.ok || marketCap === null || tradingValue === null) {
+        await recordUsTurnoverWatchObservation(watch.ticker, { market, checkedAt, error: `KIS detail unavailable: HTTP ${detail?.status ?? "none"}` });
+        continue;
+      }
       const ratio = (tradingValue / marketCap) * 100;
+      await recordUsTurnoverWatchObservation(watch.ticker, { market, ratio, checkedAt });
       if (ratio < watch.threshold) continue;
 
       const externalId = `us-turnover-watch:${date}:${watch.ticker}`;
@@ -45,6 +51,8 @@ export async function runUsTurnoverWatchAutomation() {
         .onConflictDoNothing()
         .returning({ id: alertEvents.id });
       if (claimed.length === 0) continue;
+      claimedIds.push(claimed[0].id);
+      await recordUsTurnoverWatchObservation(watch.ticker, { market, ratio, checkedAt, alertedAt: checkedAt });
       sent.push({
         code: watch.ticker,
         market,
@@ -57,6 +65,13 @@ export async function runUsTurnoverWatchAutomation() {
     }
   }
 
-  if (sent.length > 0) await sendUsTurnoverWatchToDiscord(sent);
+  if (sent.length > 0) {
+    try {
+      await sendUsTurnoverWatchToDiscord(sent);
+    } catch (error) {
+      await db.delete(alertEvents).where(inArray(alertEvents.id, claimedIds));
+      throw error;
+    }
+  }
   return { watched: watches.length, matched: sent.length, sent: sent.length };
 }

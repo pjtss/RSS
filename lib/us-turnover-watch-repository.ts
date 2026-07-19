@@ -19,3 +19,20 @@ export async function removeUsTurnoverWatch(ticker: string) {
   const db = getDb();
   return db.delete(usTurnoverRatioWatches).where(eq(usTurnoverRatioWatches.ticker, ticker));
 }
+
+export async function recordUsTurnoverWatchObservation(ticker: string, values: {
+  market?: string | null;
+  ratio?: number | null;
+  checkedAt: Date;
+  alertedAt?: Date | null;
+  error?: string | null;
+}) {
+  const db = getDb();
+  await db.update(usTurnoverRatioWatches).set({
+    lastMarket: values.market ?? null,
+    lastRatio: values.ratio ?? null,
+    lastCheckedAt: values.checkedAt,
+    lastAlertedAt: values.alertedAt ?? undefined,
+    lastError: values.error ?? null,
+  }).where(eq(usTurnoverRatioWatches.ticker, ticker));
+}

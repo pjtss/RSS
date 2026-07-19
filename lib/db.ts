@@ -38,6 +38,21 @@ export function getDb() {
   return dbInstance;
 }
 
+export async function withAdvisoryLock<T>(lockKey: string, task: () => Promise<T>) {
+  const client = await getPool().connect();
+  const result = await client.query<{ locked: boolean }>("SELECT pg_try_advisory_lock(hashtext($1)) AS locked", [lockKey]);
+  if (!result.rows[0]?.locked) {
+    client.release();
+    return { locked: false as const, value: undefined };
+  }
+  try {
+    return { locked: true as const, value: await task() };
+  } finally {
+    await client.query("SELECT pg_advisory_unlock(hashtext($1))", [lockKey]).catch(() => undefined);
+    client.release();
+  }
+}
+
 export async function ensureSchema() {
   const client = await getPool().connect();
 
@@ -134,9 +149,23 @@ export async function ensureSchema() {
       CREATE TABLE IF NOT EXISTS us_turnover_ratio_watches (
         ticker TEXT PRIMARY KEY,
         threshold DOUBLE PRECISION NOT NULL,
+        last_market TEXT,
+        last_ratio DOUBLE PRECISION,
+        last_checked_at TIMESTAMPTZ,
+        last_alerted_at TIMESTAMPTZ,
+        last_error TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
+    for (const [name, type] of [
+      ["last_market", "TEXT"],
+      ["last_ratio", "DOUBLE PRECISION"],
+      ["last_checked_at", "TIMESTAMPTZ"],
+      ["last_alerted_at", "TIMESTAMPTZ"],
+      ["last_error", "TEXT"],
+    ]) {
+      await client.query(`ALTER TABLE us_turnover_ratio_watches ADD COLUMN IF NOT EXISTS ${name} ${type}`);
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS sec_automation_events (
