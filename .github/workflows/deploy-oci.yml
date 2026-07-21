@@ -41,13 +41,17 @@ jobs:
           OCI_HOST: ${{ secrets.OCI_HOST }}
           OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
         run: |
+          set -euo pipefail
+          test -n "$OCI_HOST" || { echo "OCI_HOST secret is empty"; exit 1; }
+          test -n "$OCI_SSH_PRIVATE_KEY" || { echo "OCI_SSH_PRIVATE_KEY secret is empty"; exit 1; }
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -H "$OCI_HOST" >> ~/.ssh/known_hosts
+          echo "Checking SSH host: $OCI_HOST"
+          ssh-keyscan -T 10 -H "$OCI_HOST" >> ~/.ssh/known_hosts || { echo "ssh-keyscan failed: check OCI_HOST, port 22, and OCI firewall rules"; exit 1; }
           chmod 644 ~/.ssh/known_hosts
-          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" > ~/.ssh/oci_key
+          printf '%s\n' "$OCI_SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
-          ssh-keygen -y -f ~/.ssh/oci_key > ~/.ssh/oci_key.pub
+          ssh-keygen -y -f ~/.ssh/oci_key > ~/.ssh/oci_key.pub || { echo "ssh-keygen failed: OCI_SSH_PRIVATE_KEY is not a valid unencrypted private key"; exit 1; }
           ssh-keygen -lf ~/.ssh/oci_key.pub
 
       - name: Upload release
