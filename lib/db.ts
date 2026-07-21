@@ -43,6 +43,16 @@ export async function ensureSchema() {
 
   try {
     await client.query(`
+      CREATE TABLE IF NOT EXISTS automation_settings (
+        key TEXT PRIMARY KEY,
+        interval_seconds INTEGER NOT NULL DEFAULT 30,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      INSERT INTO automation_settings (key, interval_seconds)
+      VALUES ('global', 30)
+      ON CONFLICT (key) DO NOTHING;
+    `);
+    await client.query(`
       CREATE TABLE IF NOT EXISTS filings (
         id BIGSERIAL PRIMARY KEY,
         source TEXT NOT NULL,

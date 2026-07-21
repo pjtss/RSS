@@ -42,20 +42,22 @@ export function useFeedData(type: FeedType) {
       intervalRef.current = null;
     }
 
-    function startPolling() {
+    async function startPolling() {
       stopPolling();
       if (document.visibilityState === "visible") {
-        intervalRef.current = window.setInterval(() => void load(), GLOBAL_POLLING_INTERVAL);
+        let interval = GLOBAL_POLLING_INTERVAL;
+        try { const response = await fetch("/api/automation-settings", { cache: "no-store" }); const data = await response.json(); if (Number.isFinite(data.intervalSeconds)) interval = data.intervalSeconds * 1000; } catch { /* default */ }
+        if (!cancelled && document.visibilityState === "visible") intervalRef.current = window.setInterval(() => void load(), interval);
       }
     }
 
     function handleVisibilityChange() {
-      if (document.visibilityState === "visible") { void load(); startPolling(); }
+      if (document.visibilityState === "visible") { void load(); void startPolling(); }
       else stopPolling();
     }
 
     void load();
-    startPolling();
+    void startPolling();
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       cancelled = true;

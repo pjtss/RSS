@@ -47,6 +47,9 @@ export function AdminScannerSchedules() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState<ScheduleKey | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [intervalSeconds, setIntervalSeconds] = useState(30);
+  const [intervalDraft, setIntervalDraft] = useState("30");
+  const [intervalSaving, setIntervalSaving] = useState(false);
 
   async function loadSchedules() {
     const response = await fetch("/api/admin/scanner-schedules", { cache: "no-store" });
@@ -70,7 +73,21 @@ export function AdminScannerSchedules() {
 
   useEffect(() => {
     void loadSchedules().catch((loadError) => setError(loadError instanceof Error ? loadError.message : String(loadError)));
+    void fetch("/api/admin/automation-settings", { cache: "no-store" }).then((r) => r.json()).then((data) => {
+      if (Number.isFinite(data.intervalSeconds)) { setIntervalSeconds(data.intervalSeconds); setIntervalDraft(String(data.intervalSeconds)); }
+    }).catch(() => undefined);
   }, []);
+
+  async function saveInterval() {
+    setIntervalSaving(true);
+    try {
+      const response = await fetch("/api/admin/automation-settings", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ intervalSeconds: Number(intervalDraft) }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "자동화 주기 저장에 실패했습니다.");
+      setIntervalSeconds(data.intervalSeconds); setIntervalDraft(String(data.intervalSeconds));
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setIntervalSaving(false); }
+  }
 
   function updateDraft(key: ScheduleKey, field: keyof Schedule, value: string) {
     setDrafts((current) => current ? { ...current, [key]: { ...current[key], [field]: value } } : current);
@@ -133,6 +150,7 @@ export function AdminScannerSchedules() {
           </div>
 
           <section className={styles.scheduleSummary} aria-label="현재 스케줄">
+            <div className={styles.scheduleRow}><span><strong>전체 자동화 주기</strong><small>현재 {intervalSeconds}초마다 실행</small></span><span className={`${styles.state} ${styles.on}`}>활성</span></div>
             {rows.map(([key, label]) => {
               const schedule = schedules[key];
               const active = isWithinSchedule(schedule);
@@ -155,6 +173,8 @@ export function AdminScannerSchedules() {
       {editorOpen && drafts && (
         <AdminModal title="스케줄 수정" description="각 기능의 시간을 개별 저장합니다." onClose={() => setEditorOpen(false)} wide>
           <div className={styles.toolbar}>
+            <label className={styles.fieldGroup}><span className={styles.fieldLabel}>자동화 주기(초)</span><input className={styles.textInput} type="number" min={5} max={3600} value={intervalDraft} onChange={(event) => setIntervalDraft(event.target.value)} /></label>
+            <button className={styles.toggleButton} disabled={intervalSaving || intervalDraft === String(intervalSeconds)} onClick={() => void saveInterval()}><Save size={16} />{intervalSaving ? "저장 중" : "주기 저장"}</button>
             <button className={styles.secondaryButton} onClick={() => setDrafts(structuredClone(presets.default))}>
               <RotateCcw size={16} />
               기본값
