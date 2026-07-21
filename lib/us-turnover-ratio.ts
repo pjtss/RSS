@@ -164,7 +164,7 @@ export async function fetchUsTurnoverRatioScanner(request: KisUsTopRisingApiRequ
       const row = item as Record<string, unknown>;
       const price = parsePrice(row.last ?? row.price);
       const rate = signedNumber(row.rate ?? row.changeRate ?? row.n_rate);
-      return price !== null && price < 10 && rate !== null && rate < 20;
+      return price !== null && price < 10 && rate !== null && rate < 30;
     });
     const enriched = await enrichWithPriceDetails(detailEligibleOutput, market);
     enriched.debug.sourceCount = output.length;
