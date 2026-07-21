@@ -210,6 +210,26 @@ export async function ensureSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS stocktitan_articles (
+        external_id TEXT PRIMARY KEY,
+        guid TEXT,
+        title TEXT NOT NULL,
+        link TEXT NOT NULL UNIQUE,
+        description TEXT NOT NULL DEFAULT '',
+        published_at TIMESTAMPTZ,
+        content_hash TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'discovered',
+        ai_evaluation JSONB,
+        ai_model TEXT,
+        ai_evaluated_at TIMESTAMPTZ,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS push_subscriptions (
         id BIGSERIAL PRIMARY KEY,
         endpoint TEXT NOT NULL UNIQUE,

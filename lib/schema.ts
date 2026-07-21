@@ -106,6 +106,26 @@ export const secAutomationEvents = pgTable("sec_automation_events", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const stocktitanArticles = pgTable("stocktitan_articles", {
+  externalId: text("external_id").primaryKey(),
+  guid: text("guid"),
+  title: text("title").notNull(),
+  link: text("link").notNull(),
+  description: text("description").notNull().default(""),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  contentHash: text("content_hash").notNull(),
+  status: text("status").notNull().default("discovered"),
+  aiEvaluation: jsonb("ai_evaluation"),
+  aiModel: text("ai_model"),
+  aiEvaluatedAt: timestamp("ai_evaluated_at", { withTimezone: true }),
+  attempts: integer("attempts").notNull().default(0),
+  lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("stocktitan_articles_link_unique").on(table.link),
+]);
+
 // 3. 브라우저 웹 푸시 구독 엔티티
 export const pushSubscriptions = pgTable(
   "push_subscriptions",

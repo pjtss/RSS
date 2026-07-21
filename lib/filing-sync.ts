@@ -2,11 +2,13 @@ import { loadAdminFeatureFlags } from "./admin-flags";
 import { runDartAutomation } from "./dart-automation";
 import { isDartOpen } from "./scanner-hours";
 import { runSecAutomation } from "./sec-automation";
+import { runStockTitanAutomation } from "./stocktitan-automation";
 
 export type FilingSyncResult = {
   success: true;
   dart: unknown;
   sec: unknown;
+  stocktitan: unknown;
 };
 
 export async function runFilingSync(): Promise<FilingSyncResult> {
@@ -25,5 +27,9 @@ export async function runFilingSync(): Promise<FilingSyncResult> {
     ? await runSecAutomation()
     : { skipped: true, reason: "SEC disabled by admin" };
 
-  return { success: true, dart, sec };
+  const stocktitan = process.env.STOCKTITAN_ENABLED === "true"
+    ? await runStockTitanAutomation()
+    : { skipped: true, reason: "StockTitan disabled by environment" };
+
+  return { success: true, dart, sec, stocktitan };
 }
