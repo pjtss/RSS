@@ -52,11 +52,10 @@ export async function runUsTurnoverRatioAutomation() {
     const hasOnePercentGain = Number.isFinite(changeRate) && changeRate >= 1;
     const hasTradingValueIncrease = item.trend.oneMinuteTradingValueIncrease !== null && item.trend.oneMinuteTradingValueIncrease >= 10_000;
     const hasRateIncrease = item.trend.oneMinuteChangeRateIncrease !== null && item.trend.oneMinuteChangeRateIncrease > 0;
-    const isOverheated = item.turnoverRatio >= 10;
     const isTooExtended = item.previousCloseToHighRate !== null && item.previousCloseToHighRate >= 50;
     const code = item.code.toUpperCase();
     const isNewToday = item.trend.isNew && !alertedTodayCodes.has(code);
-    const shouldAlert = hasOnePercentGain && (isOverheated || !isTooExtended) && (
+    const shouldAlert = hasOnePercentGain && !isTooExtended && (
       isNewToday ||
       (hasRateIncrease && hasTradingValueIncrease)
     );
