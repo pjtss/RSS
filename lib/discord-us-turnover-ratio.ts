@@ -53,11 +53,13 @@ export async function sendUsTurnoverRatioToDiscord(items: UsTurnoverRatioItem[],
 
   const results = [];
   for (const chunk of chunks) {
-    const response = await fetch(`${webhook}${webhook.includes("?") ? "&" : "?"}wait=true`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(buildUsTurnoverRatioDiscordPayload(chunk)),
-    });
+    let response: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      response = await fetch(`${webhook}${webhook.includes("?") ? "&" : "?"}wait=true`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(buildUsTurnoverRatioDiscordPayload(chunk)) });
+      if (SUCCESS_STATUSES.has(response.status) || response.status < 400 || attempt === 2) break;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+    if (!response) return { ok: false, status: 0, responseText: "Discord request was not made" };
     results.push({ status: response.status, responseText: await response.text() });
     if (!SUCCESS_STATUSES.has(response.status)) {
       return { ok: false, status: response.status, responseText: results.map((result) => result.responseText).join("\n") };
