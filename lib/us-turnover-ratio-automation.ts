@@ -61,7 +61,7 @@ export async function runUsTurnoverRatioAutomation() {
     }
   }
 
-  if (pendingNew.length + pendingIncrease.length === 0) return { skipped: false, sent: 0, matched: trendedItems.length, newCount: 0, increaseCount: 0 };
+  if (pendingNew.length + pendingIncrease.length === 0) return { skipped: false, sent: 0, matched: trendedItems.length, newCount: 0, increaseCount: 0, sourceCount: result.debug?.sourceCount ?? 0, priceDetailAttemptCount: result.debug?.priceDetailAttemptCount ?? 0, priceDetailSuccessCount: result.debug?.priceDetailSuccessCount ?? 0 };
   const newWebhook = process.env.US_TURNOVER_RATIO_NEW_DISCORD_WEBHOOK_URL?.trim() || "";
   const increaseWebhook = process.env.US_TURNOVER_RATIO_INCREASE_DISCORD_WEBHOOK_URL?.trim() || "";
   if (pendingNew.length > 0 && !newWebhook) throw new Error("New turnover ratio Discord webhook is not configured");
@@ -77,5 +77,5 @@ export async function runUsTurnoverRatioAutomation() {
     const failed = [newDiscord, increaseDiscord].find((result) => result && !result.ok);
     throw new Error(`US turnover ratio Discord failed with HTTP ${failed?.status}`);
   }
-  return { skipped: false, sent: pendingNew.length + pendingIncrease.length, matched: result.filtered.length, newCount: pendingNew.length, increaseCount: pendingIncrease.length };
+  return { skipped: false, sent: pendingNew.length + pendingIncrease.length, matched: result.filtered.length, newCount: pendingNew.length, increaseCount: pendingIncrease.length, sourceCount: result.debug?.sourceCount ?? 0, priceDetailAttemptCount: result.debug?.priceDetailAttemptCount ?? 0, priceDetailSuccessCount: result.debug?.priceDetailSuccessCount ?? 0 };
 }
