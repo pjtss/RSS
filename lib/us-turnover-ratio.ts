@@ -68,7 +68,7 @@ function isInverseOrLeveraged(item: Record<string, unknown>) {
   return /인버스|레버리지|inverse|leverag|\bshort\b|\b\d+(?:\.\d+)?x\b/i.test(`${name} ${englishName}`);
 }
 
-async function enrichWithPriceDetails(output: unknown[], market: string) {
+async function enrichWithPriceDetails(output: unknown[], market: string, settings = DEFAULT_US_TURNOVER_FILTER_SETTINGS) {
   const result: unknown[] = Array.from({ length: output.length });
   const debug: UsTurnoverRatioDebug = { sourceCount: output.length, priceDetailAttemptCount: 0, priceDetailSuccessCount: 0, details: [] };
   const concurrency = 8;
@@ -109,7 +109,7 @@ async function enrichWithPriceDetails(output: unknown[], market: string) {
       const marketCap = detailMarketCap;
       const tradingValue = detailTradingValue;
       const turnoverRatio = marketCap !== null && tradingValue !== null ? (tradingValue / marketCap) * 100 : null;
-      debug.details[index] = { code, marketCap, tradingValue, turnoverRatio, openToHighRate, included: turnoverRatio !== null && turnoverRatio >= 1 && turnoverRatio <= 10 && openToHighRate !== null && openToHighRate < 30 };
+      debug.details[index] = { code, marketCap, tradingValue, turnoverRatio, openToHighRate, included: turnoverRatio !== null && turnoverRatio >= settings.minTurnoverRatio && turnoverRatio <= settings.maxTurnoverRatio && openToHighRate !== null && openToHighRate <= settings.maxOpenToHighRate };
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, output.length) }, () => worker()));
@@ -168,7 +168,7 @@ export async function fetchUsTurnoverRatioScanner(request: KisUsTopRisingApiRequ
       const rate = signedNumber(row.rate ?? row.changeRate ?? row.n_rate);
       return price !== null && price < settings.maxPrice && rate !== null && rate < settings.maxRate;
     });
-    const enriched = await enrichWithPriceDetails(detailEligibleOutput, market);
+    const enriched = await enrichWithPriceDetails(detailEligibleOutput, market, settings);
     enriched.debug.sourceCount = output.length;
     enriched.debug.preDetailFilteredOutCount = output.length - detailEligibleOutput.length;
     return { result, enriched, market };

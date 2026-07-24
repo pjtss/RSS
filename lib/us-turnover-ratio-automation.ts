@@ -8,6 +8,10 @@ import { saveAndCalculateUsTurnoverRatioTrends, type UsTurnoverRatioItemWithTren
 import { isUsTurnoverRatioDiscordConfigured, sendUsTurnoverRatioToDiscord } from "@/lib/discord-us-turnover-ratio";
 import { loadUsTurnoverFilterSettings } from "@/lib/us-turnover-settings";
 
+export function meetsTradingValueIncreaseAlert(value: number | null, threshold: number) {
+  return value !== null && Number.isFinite(value) && value >= threshold;
+}
+
 function seoulDate() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date());
 }
@@ -41,7 +45,7 @@ export async function runUsTurnoverRatioAutomation() {
   const claimedIds: number[] = [];
   for (const item of trendedItems) {
     if (pendingNew.length + pendingIncrease.length >= 100) break;
-    const hasTradingValueIncrease = item.trend.oneMinuteTradingValueIncrease !== null && item.trend.oneMinuteTradingValueIncrease >= settings.tradingValueIncreaseAlert;
+    const hasTradingValueIncrease = meetsTradingValueIncreaseAlert(item.trend.oneMinuteTradingValueIncrease, settings.tradingValueIncreaseAlert);
     const shouldAlert = item.trend.isNew || hasTradingValueIncrease;
     if (!shouldAlert) continue;
     const code = item.code.toUpperCase();
