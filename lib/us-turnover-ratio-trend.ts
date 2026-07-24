@@ -6,6 +6,7 @@ import type { UsTurnoverRatioItem } from "@/lib/us-turnover-ratio";
 export type UsTurnoverRatioTrend = {
   isNew: boolean;
   oneMinuteTradingValueIncrease: number | null;
+  oneMinuteTradingValueRvol: number | null;
   threeMinuteTradingValueIncrease: number | null;
   fiveMinuteTradingValueIncrease: number | null;
   oneMinuteIncrease: number | null;
@@ -41,7 +42,9 @@ export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRat
   const dayStart = startOfSeoulDay(observedAt);
 
   for (const item of items) {
-    const previous = await Promise.all(windows.map(async ({ minutes }) => {
+    const [sessionRows, ...previous] = await Promise.all([
+      db.select({ id: usTurnoverRatioSnapshots.id }).from(usTurnoverRatioSnapshots).where(and(eq(usTurnoverRatioSnapshots.market, item.market), eq(usTurnoverRatioSnapshots.code, item.code), gte(usTurnoverRatioSnapshots.observedAt, dayStart), lte(usTurnoverRatioSnapshots.observedAt, observedAt))).limit(1),
+      ...windows.map(async ({ minutes }) => {
       const cutoff = new Date(observedAt.getTime() - minutes * 60_000);
       const rows = await db.select().from(usTurnoverRatioSnapshots)
           .where(and(
@@ -52,13 +55,18 @@ export async function saveAndCalculateUsTurnoverRatioTrends(items: UsTurnoverRat
         ))
         .orderBy(desc(usTurnoverRatioSnapshots.observedAt)).limit(1);
       return rows[0] ?? null;
-    }));
+      }),
+    ]);
+    const recentRows = await db.select({ tradingValue: usTurnoverRatioSnapshots.tradingValue }).from(usTurnoverRatioSnapshots).where(and(eq(usTurnoverRatioSnapshots.market, item.market), eq(usTurnoverRatioSnapshots.code, item.code), gte(usTurnoverRatioSnapshots.observedAt, dayStart), lte(usTurnoverRatioSnapshots.observedAt, observedAt))).orderBy(desc(usTurnoverRatioSnapshots.observedAt)).limit(8);
+    const historicalIncreases = recentRows.slice(0, -1).map((row, index) => row.tradingValue - recentRows[index + 1].tradingValue).filter((value) => value > 0);
+    const baseline = historicalIncreases.length > 0 ? historicalIncreases.reduce((sum, value) => sum + value, 0) / historicalIncreases.length : null;
 
     const increases = previous.map((row) => row ? item.turnoverRatio - row.turnoverRatio : null);
     const tradingValueIncreases = previous.map((row) => row ? item.tradingValue - row.tradingValue : null);
     const trend: UsTurnoverRatioTrend = {
-      isNew: previous[0] === null,
+      isNew: sessionRows.length === 0,
       oneMinuteTradingValueIncrease: tradingValueIncreases[0],
+      oneMinuteTradingValueRvol: tradingValueIncreases[0] !== null && baseline !== null && baseline > 0 ? tradingValueIncreases[0] / baseline : null,
       threeMinuteTradingValueIncrease: tradingValueIncreases[1],
       fiveMinuteTradingValueIncrease: tradingValueIncreases[2],
       oneMinuteIncrease: increases[0],

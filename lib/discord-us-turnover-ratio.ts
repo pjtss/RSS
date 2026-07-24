@@ -31,6 +31,7 @@ export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioI
       color: 0x00ffa3,
       fields: [
         { name: "직전 대비 거래대금", value: formatTradingValueIncrease(item), inline: false },
+        { name: "거래대금 RVOL", value: "trend" in item && item.trend.oneMinuteTradingValueRvol !== null ? `${item.trend.oneMinuteTradingValueRvol.toFixed(2)}x` : "-", inline: true },
         { name: "시가총액", value: formatWholeMan(item.marketCap), inline: true },
         { name: "당일 거래대금", value: formatWholeMan(item.tradingValue), inline: true },
         { name: "등락률", value: item.changeRate || "-", inline: true },
