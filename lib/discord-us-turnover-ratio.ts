@@ -39,7 +39,6 @@ export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioI
         { name: "시가 대비 고점", value: `${item.openToHighRate.toFixed(2)}%`, inline: true },
       ],
       timestamp: new Date().toISOString(),
-      footer: { text: "STOCKMAN US Turnover Ratio Automation" },
     })),
   };
 }
