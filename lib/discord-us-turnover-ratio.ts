@@ -27,7 +27,7 @@ export function buildUsTurnoverRatioDiscordPayload(items: Array<UsTurnoverRatioI
     username: "STOCKMAN US TURNOVER",
     allowed_mentions: { parse: [] as string[] },
     embeds: items.slice(0, 10).map((item) => ({
-      title: `${item.code} | ${item.name || item.code}`,
+      title: `${item.market} ${item.code} | ${item.name || item.code}`,
       color: 0x00ffa3,
       fields: [
         { name: "직전 대비 거래대금", value: formatTradingValueIncrease(item), inline: false },
